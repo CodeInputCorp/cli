@@ -2,8 +2,7 @@
 extern crate log;
 
 pub mod commands;
-pub mod error;
-pub mod hazard;
+pub mod types;
 
 use utils::error::Result;
 

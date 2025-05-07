@@ -2,7 +2,7 @@
 
 We welcome any kind of contributions. Whether you are reporting a bug, coding a feature or correcting a typo. Every effort counts; and all contributions are greatly appreaciated.
 
-Another great way to contribute is to actually use for your Open Source or Commercial projects. If you do, make sure to open an issue with a link to your project.
+Another great way to contribute is to actually use codeinput for your Open Source or Commercial projects. If you do, make sure to open an issue with a link to your project.
 
 ### Testing Code
 

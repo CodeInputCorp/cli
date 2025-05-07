@@ -1,12 +1,14 @@
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{
+    generate,
+    shells::{Bash, Fish, Zsh},
+};
 use std::path::PathBuf;
-use clap::{Parser, Subcommand, CommandFactory};
-use clap_complete::{generate, shells::{Bash, Fish, Zsh}};
 
-use core::commands;
+use core::{commands, types::OutputFormat};
 use utils::app_config::AppConfig;
 use utils::error::Result;
 use utils::types::LogLevel;
-
 
 #[derive(Parser, Debug)]
 #[command(
@@ -25,11 +27,16 @@ pub struct Cli {
     pub config: Option<PathBuf>,
 
     /// Set a custom config file
-    #[arg(name="debug", short, long="debug", value_name = "DEBUG")]
+    #[arg(name = "debug", short, long = "debug", value_name = "DEBUG")]
     pub debug: Option<bool>,
 
-    /// Set Log Level 
-    #[arg(name="log_level", short, long="log-level", value_name = "LOG_LEVEL")]
+    /// Set Log Level
+    #[arg(
+        name = "log_level",
+        short,
+        long = "log-level",
+        value_name = "LOG_LEVEL"
+    )]
     pub log_level: Option<LogLevel>,
 
     /// Subcommands
@@ -40,26 +47,23 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
     #[clap(
-        name = "hazard",
-        about = "Generate a hazardous occurance",
-        long_about = None, 
+        name = "codeowners",
+        about = "Manage and analyze CODEOWNERS files",
+        long_about = "Tools for parsing, validating and querying CODEOWNERS files"
     )]
-    Hazard,
-    #[clap(
-        name = "error",
-        about = "Simulate an error",
-        long_about = None, 
-    )]
-    Error,
+    Codeowners {
+        #[clap(subcommand)]
+        subcommand: CodeownersSubcommand,
+    },
     #[clap(
         name = "completion",
         about = "Generate completion scripts",
         long_about = None,
         )]
-        Completion {
-            #[clap(subcommand)]
-            subcommand: CompletionSubcommand,
-        },
+    Completion {
+        #[clap(subcommand)]
+        subcommand: CompletionSubcommand,
+    },
     #[clap(
         name = "config",
         about = "Show Configuration",
@@ -78,6 +82,102 @@ enum CompletionSubcommand {
     Fish,
 }
 
+#[derive(Subcommand, PartialEq, Debug)]
+enum CodeownersSubcommand {
+    #[clap(
+        name = "parse",
+        about = "Preprocess CODEOWNERS files and build ownership map"
+    )]
+    Parse {
+        /// Directory path to analyze (default: current directory)
+        #[arg(default_value = ".")]
+        path: PathBuf,
+
+        /// Custom cache file location
+        #[arg(long, value_name = "FILE")]
+        cache_file: Option<PathBuf>,
+    },
+
+    #[clap(
+        name = "list-files",
+        about = "Find and list files with their owners based on filter criteria"
+    )]
+    ListFiles {
+        /// Directory path to analyze (default: current directory)
+        #[arg(default_value = ".")]
+        path: Option<PathBuf>,
+
+        /// Only show files with specified tags
+        #[arg(long, value_name = "LIST")]
+        tags: Option<String>,
+
+        /// Only show files owned by these owners
+        #[arg(long, value_name = "LIST")]
+        owners: Option<String>,
+
+        /// Show only unowned files
+        #[arg(long)]
+        unowned: bool,
+
+        /// Output format: text|json|bincode
+        #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
+        format: OutputFormat,
+    },
+
+    #[clap(
+        name = "list-owners",
+        about = "Display aggregated owner statistics and associations"
+    )]
+    ListOwners {
+        /// Comma-separated tags filter
+        #[arg(long, value_name = "LIST")]
+        filter_tags: Option<String>,
+
+        /// Display tags in output
+        #[arg(long)]
+        show_tags: bool,
+
+        /// Only show owners with >= NUM files
+        #[arg(long, value_name = "NUM")]
+        min_files: Option<u32>,
+
+        /// Output format: text|json|bincode
+        #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
+        format: OutputFormat,
+    },
+    #[clap(
+        name = "list-tags",
+        about = "Audit and analyze tag usage across CODEOWNERS files"
+    )]
+    ListTags {
+        /// Warn if tags have fewer than NUM owners
+        #[arg(long, value_name = "NUM")]
+        verify_owners: Option<u32>,
+
+        /// Sort by: tag|count|owners
+        #[arg(long, value_name = "FIELD", default_value = "tag")]
+        sort: String,
+
+        /// Output format: text|json|bincode
+        #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
+        format: OutputFormat,
+    },
+
+    #[clap(
+        name = "validate",
+        about = "Validate CODEOWNERS files for errors and potential issues"
+    )]
+    Validate {
+        /// Treat warnings as errors
+        #[arg(long)]
+        strict: bool,
+
+        /// Output format: text|json|bincode
+        #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
+        output: OutputFormat,
+    },
+}
+
 pub fn cli_match() -> Result<()> {
     // Parse the command line arguments
     let cli = Cli::parse();
@@ -87,14 +187,13 @@ pub fn cli_match() -> Result<()> {
 
     let app = Cli::command();
     let matches = app.get_matches();
-    
+
     AppConfig::merge_args(matches)?;
 
     // Execute the subcommand
     match &cli.command {
-        Commands::Hazard => commands::hazard()?,
-        Commands::Error => commands::simulate_error()?,
-        Commands::Completion {subcommand} => {
+        Commands::Codeowners { subcommand } => codeowners(subcommand)?,
+        Commands::Completion { subcommand } => {
             let mut app = Cli::command();
             match subcommand {
                 CompletionSubcommand::Bash => {
@@ -112,4 +211,54 @@ pub fn cli_match() -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Handle codeowners subcommands
+pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
+    match subcommand {
+        CodeownersSubcommand::Parse { path, cache_file } => {
+            commands::codeowners_parse(path, cache_file.as_deref())
+        }
+        CodeownersSubcommand::ListFiles {
+            path,
+            tags,
+            owners,
+            unowned,
+            format,
+        } => commands::codeowners_list_files(
+            path.as_deref(),
+            tags.as_deref(),
+            owners.as_deref(),
+            *unowned,
+            format,
+        ),
+        CodeownersSubcommand::ListOwners {
+            filter_tags,
+            show_tags,
+            min_files,
+            format,
+        } => commands::codeowners_list_owners(
+            filter_tags.as_deref(),
+            *show_tags,
+            min_files.as_ref(),
+            format,
+        ),
+        CodeownersSubcommand::ListTags {
+            verify_owners,
+            sort,
+            format,
+        } => commands::codeowners_list_tags(verify_owners.as_ref(), sort, format),
+        CodeownersSubcommand::Validate { strict, output } => {
+            commands::codeowners_validate(*strict, output)
+        }
+    }
+}
+
+fn parse_output_format(s: &str) -> std::result::Result<OutputFormat, String> {
+    match s.to_lowercase().as_str() {
+        "text" => Ok(OutputFormat::Text),
+        "json" => Ok(OutputFormat::Json),
+        "bincode" => Ok(OutputFormat::Bincode),
+        _ => Err(format!("Invalid output format: {}", s)),
+    }
 }
