@@ -2,7 +2,7 @@
 
 We welcome any kind of contributions. Whether you are reporting a bug, coding a feature or correcting a typo. Every effort counts; and all contributions are greatly appreaciated.
 
-Another great way to contribute is to actually use rust-starter for your Open Source or Commercial projects. If you do, make sure to open an issue with a link to your project.
+Another great way to contribute is to actually use for your Open Source or Commercial projects. If you do, make sure to open an issue with a link to your project.
 
 ### Testing Code
 
@@ -13,7 +13,7 @@ cargo test --all
 
 ```
 
-Alternatively, if you have [`just`](https://github.com/casey/just) installed you can run the prebuilt recipes. *Not* using `just` is perfectly fine as well, it simply bundles commands automatically.
+Alternatively, if you have [`just`](https://github.com/casey/just) installed you can run the prebuilt recipes. _Not_ using `just` is perfectly fine as well, it simply bundles commands automatically.
 
 For example, to test the code, as above simply run:
 
@@ -29,19 +29,19 @@ $ just run-tests
 
 Use a [conventional](https://github.com/ajoslin/conventional-changelog/blob/a5505865ff3dd710cf757f50530e73ef0ca641da/conventions/angular.md) changelog format so the changelog can be updated automatically using [clog](https://github.com/clog-tool/clog-cli)
 
- * Please format your commit subject line using the following format: `TYPE(COMPONENT): MESSAGE` where `TYPE` is one of the following:
-    - `feat` - A new feature of an existing API
-    - `imp`  - An improvement to an existing feature/API
-    - `perf` - A performance improvement
-    - `docs` - Changes to documentation only
-    - `tests` - Changes to the testing framework or tests only
-    - `fix` - A bug fix
-    - `refactor` - Code functionality doesn't change, but underlying structure may
-    - `style` - Stylistic changes only, no functionality changes
-    - `wip` - A work in progress commit (Should typically be `git rebase`'ed away)
-    - `chore` - Catch all or things that have to do with the build system, etc
-    - `examples` - Changes to existing example, or a new example
- * The `COMPONENT` is optional, and may be a single file, directory, or logical component. Parenthesis can be omitted if you are opting not to use the `COMPONENT`.
+- Please format your commit subject line using the following format: `TYPE(COMPONENT): MESSAGE` where `TYPE` is one of the following:
+  - `feat` - A new feature of an existing API
+  - `imp` - An improvement to an existing feature/API
+  - `perf` - A performance improvement
+  - `docs` - Changes to documentation only
+  - `tests` - Changes to the testing framework or tests only
+  - `fix` - A bug fix
+  - `refactor` - Code functionality doesn't change, but underlying structure may
+  - `style` - Stylistic changes only, no functionality changes
+  - `wip` - A work in progress commit (Should typically be `git rebase`'ed away)
+  - `chore` - Catch all or things that have to do with the build system, etc
+  - `examples` - Changes to existing example, or a new example
+- The `COMPONENT` is optional, and may be a single file, directory, or logical component. Parenthesis can be omitted if you are opting not to use the `COMPONENT`.
 
 ### Tests and Documentation
 
@@ -52,15 +52,14 @@ Use a [conventional](https://github.com/ajoslin/conventional-changelog/blob/a550
 
 ### Preparing the PR
 
-
 1. `git rebase` into concise commits and remove `--fixup`s or `wip` commits (`git rebase -i HEAD~NUM` where `NUM` is number of commits back to start the rebase)
 2. Push your changes back to your fork (`git push origin $your-branch`)
 3. Create a pull request against `master`! (You can also create the pull request first, and we'll merge when ready. This a good way to discuss proposed changes.)
 
 ### Goals
 
-* Remain backwards compatible when possible.
-    Backward compatibility is not critical since projects do not depend on Rust Starter. But it's a good idea to have stable features and usage.
-* Reduce dependencies.
-* Follow best practices.
-* Ease of use and customization.
+- Remain backwards compatible when possible.
+  Backward compatibility is not critical since projects do not depend on Rust Starter. But it's a good idea to have stable features and usage.
+- Reduce dependencies.
+- Follow best practices.
+- Ease of use and customization.

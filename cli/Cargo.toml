@@ -2,8 +2,8 @@
 name = "cli"
 version = "0.0.1"
 authors = ["Abid Omar <contact@omarabid.com>"]
-description = "CLI interface "
-edition = "2021"
+description = "CLI interface"
+edition = "2024"
 
 [dependencies]
 utils = { path = "../utils" }

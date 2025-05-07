@@ -8,7 +8,7 @@ readme = "README.md"
 license = "MIT"
 keywords = ["cli", "codeinput", "git", "tooling"]
 description = """
-.
+code input cli.
 """
 
 [workspace]

@@ -3,7 +3,7 @@ name = "core"
 version = "0.0.1"
 authors = ["Abid Omar <contact@omarabid.com>"]
 description = "The application core code"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 utils = { path = "../utils" }
