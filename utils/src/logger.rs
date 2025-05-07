@@ -1,5 +1,5 @@
-use slog::o;
 use slog::Drain;
+use slog::o;
 #[cfg(all(target_os = "linux", feature = "journald"))]
 use slog_journald::JournaldDrain;
 #[cfg(feature = "syslog")]
@@ -33,7 +33,7 @@ pub fn default_root_logger() -> Result<slog::Logger> {
     .fuse();
 
     // Create Logger
-    let logger = slog::Logger::root(drain, o!("who" => "rust-starter"));
+    let logger = slog::Logger::root(drain, o!("who" => "codeinput"));
 
     // Return Logger
     Ok(logger)

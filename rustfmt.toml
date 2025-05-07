@@ -1,5 +1,5 @@
 # Compatibility:
-edition = "2021"
+edition = "2024"
 
 # Comments:
 normalize_comments = true

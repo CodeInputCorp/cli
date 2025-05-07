@@ -2,7 +2,7 @@
 
 package_name := `sed -En 's/name[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1`
 package_version := `sed -En 's/version[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1`
-dockerhub_org := "ruststarter"
+dockerhub_org := "codeinput"
 
 run-test TEST:
 	cargo test --test {{TEST}}
