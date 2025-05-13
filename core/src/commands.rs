@@ -44,12 +44,7 @@ pub fn codeowners_list_files(
 }
 
 /// Display aggregated owner statistics and associations
-pub fn codeowners_list_owners(
-    filter_tags: Option<&str>, show_tags: bool, min_files: Option<&u32>, format: &OutputFormat,
-) -> Result<()> {
-    info!("Listing owners with filter_tags: {:?}", filter_tags);
-    info!("Show tags: {}", show_tags);
-    info!("Min files: {:?}", min_files);
+pub fn codeowners_list_owners(format: &OutputFormat) -> Result<()> {
     info!("Output format: {}", format);
 
     println!("Owners listing completed");
@@ -57,11 +52,7 @@ pub fn codeowners_list_owners(
 }
 
 /// Audit and analyze tag usage across CODEOWNERS files
-pub fn codeowners_list_tags(
-    verify_owners: Option<&u32>, sort: &str, format: &OutputFormat,
-) -> Result<()> {
-    info!("Listing tags with verify_owners: {:?}", verify_owners);
-    info!("Sort by: {}", sort);
+pub fn codeowners_list_tags(format: &OutputFormat) -> Result<()> {
     info!("Output format: {}", format);
 
     println!("Tags listing completed");

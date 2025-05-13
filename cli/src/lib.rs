@@ -129,18 +129,6 @@ enum CodeownersSubcommand {
         about = "Display aggregated owner statistics and associations"
     )]
     ListOwners {
-        /// Comma-separated tags filter
-        #[arg(long, value_name = "LIST")]
-        filter_tags: Option<String>,
-
-        /// Display tags in output
-        #[arg(long)]
-        show_tags: bool,
-
-        /// Only show owners with >= NUM files
-        #[arg(long, value_name = "NUM")]
-        min_files: Option<u32>,
-
         /// Output format: text|json|bincode
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
@@ -150,14 +138,6 @@ enum CodeownersSubcommand {
         about = "Audit and analyze tag usage across CODEOWNERS files"
     )]
     ListTags {
-        /// Warn if tags have fewer than NUM owners
-        #[arg(long, value_name = "NUM")]
-        verify_owners: Option<u32>,
-
-        /// Sort by: tag|count|owners
-        #[arg(long, value_name = "FIELD", default_value = "tag")]
-        sort: String,
-
         /// Output format: text|json|bincode
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
@@ -232,22 +212,8 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             *unowned,
             format,
         ),
-        CodeownersSubcommand::ListOwners {
-            filter_tags,
-            show_tags,
-            min_files,
-            format,
-        } => commands::codeowners_list_owners(
-            filter_tags.as_deref(),
-            *show_tags,
-            min_files.as_ref(),
-            format,
-        ),
-        CodeownersSubcommand::ListTags {
-            verify_owners,
-            sort,
-            format,
-        } => commands::codeowners_list_tags(verify_owners.as_ref(), sort, format),
+        CodeownersSubcommand::ListOwners { format } => commands::codeowners_list_owners(format),
+        CodeownersSubcommand::ListTags { format } => commands::codeowners_list_tags(format),
         CodeownersSubcommand::Validate { strict, output } => {
             commands::codeowners_validate(*strict, output)
         }
