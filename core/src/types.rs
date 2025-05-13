@@ -1,3 +1,31 @@
+use std::path::PathBuf;
+
+/// CODEOWNERS entry with source tracking
+#[derive(Debug)]
+pub struct CodeownersEntry {
+    pub source_file: PathBuf,
+    pub line_number: usize,
+    pub pattern: String,
+    pub owners: Vec<Owner>,
+    pub tags: Vec<String>,
+}
+
+/// Detailed owner representation
+#[derive(Debug)]
+pub struct Owner {
+    pub identifier: String,
+    pub owner_type: OwnerType,
+}
+
+/// Owner type classification
+#[derive(Debug)]
+pub enum OwnerType {
+    User,
+    Team,
+    Email,
+    Unknown,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum OutputFormat {
     Text,

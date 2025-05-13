@@ -4,3 +4,4 @@ Cargo.lock
 .cache
 custom_config.toml
 .DS_Store
+example-repo

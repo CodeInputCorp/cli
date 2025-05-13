@@ -15,14 +15,12 @@ pub fn config() -> Result<()> {
 pub fn codeowners_parse(
     path: &std::path::Path, cache_file: Option<&std::path::Path>,
 ) -> Result<()> {
-    info!("Parsing CODEOWNERS files at {}", path.display());
-    info!(
-        "Cache file: {}",
-        cache_file.map_or_else(
-            || ".codeinput-cache.json".into(),
-            |p| p.display().to_string()
-        )
-    );
+    println!("Parsing CODEOWNERS files at {}", path.display());
+
+    let codeowners_files = crate::common::find_codeowners_files(path)?;
+
+    dbg!(codeowners_files);
+
     println!("CODEOWNERS parsing completed successfully");
     Ok(())
 }
@@ -56,15 +54,5 @@ pub fn codeowners_list_tags(format: &OutputFormat) -> Result<()> {
     info!("Output format: {}", format);
 
     println!("Tags listing completed");
-    Ok(())
-}
-
-/// Validate CODEOWNERS files for errors and potential issues
-pub fn codeowners_validate(strict: bool, output: &OutputFormat) -> Result<()> {
-    info!("Validating CODEOWNERS files");
-    info!("Strict mode: {}", strict);
-    info!("Output format: {}", output);
-
-    println!("CODEOWNERS validation completed");
     Ok(())
 }

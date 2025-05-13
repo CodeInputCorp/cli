@@ -142,20 +142,6 @@ enum CodeownersSubcommand {
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
     },
-
-    #[clap(
-        name = "validate",
-        about = "Validate CODEOWNERS files for errors and potential issues"
-    )]
-    Validate {
-        /// Treat warnings as errors
-        #[arg(long)]
-        strict: bool,
-
-        /// Output format: text|json|bincode
-        #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
-        output: OutputFormat,
-    },
 }
 
 pub fn cli_match() -> Result<()> {
@@ -214,9 +200,6 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
         ),
         CodeownersSubcommand::ListOwners { format } => commands::codeowners_list_owners(format),
         CodeownersSubcommand::ListTags { format } => commands::codeowners_list_tags(format),
-        CodeownersSubcommand::Validate { strict, output } => {
-            commands::codeowners_validate(*strict, output)
-        }
     }
 }
 

@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
-use utils::error::Result;
+use utils::error::{Error, Result};
+
+use crate::types::{CodeownersEntry, Owner, OwnerType};
 
 /// Find CODEOWNERS files recursively in the given directory and its subdirectories
 pub fn find_codeowners_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf>> {
@@ -22,6 +24,79 @@ pub fn find_codeowners_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf
     }
 
     Ok(result)
+}
+
+/// Parse CODEOWNERS
+pub fn parse_codeowners(content: &str, source_path: &Path) -> Result<Vec<CodeownersEntry>> {
+    content
+        .lines()
+        .enumerate()
+        .filter_map(|(line_num, line)| parse_line(line, line_num + 1, source_path).transpose())
+        .collect()
+}
+
+/// Parse a line of CODEOWNERS
+fn parse_line(line: &str, line_num: usize, source_path: &Path) -> Result<Option<CodeownersEntry>> {
+    let clean_line = line.split('#').next().unwrap_or("").trim();
+    if clean_line.is_empty() {
+        return Ok(None);
+    }
+
+    let mut parts = clean_line.split_whitespace();
+    let pattern = parts
+        .next()
+        .ok_or_else(|| Error::new("Missing pattern"))?
+        .to_string();
+
+    let (owners, tags) = parts.fold((Vec::new(), Vec::new()), |(mut owners, mut tags), part| {
+        if part.starts_with('@') {
+            let owner = parse_owner(part).unwrap();
+            owners.push(owner);
+        } else if part.starts_with('[') && part.ends_with(']') {
+            tags.extend(
+                part[1..part.len() - 1]
+                    .split(',')
+                    .map(|t| t.trim().to_string()),
+            );
+        } else {
+            let owner = parse_owner(part).unwrap();
+            owners.push(owner);
+        }
+        (owners, tags)
+    });
+
+    if owners.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some(CodeownersEntry {
+        source_file: source_path.to_path_buf(),
+        line_number: line_num,
+        pattern,
+        owners,
+        tags,
+    }))
+}
+
+/// Parse an owner string into an Owner struct
+fn parse_owner(owner_str: &str) -> Result<Owner> {
+    let (identifier, owner_type) = if owner_str.contains('@') {
+        (owner_str.to_string(), OwnerType::Email)
+    } else if owner_str.starts_with('@') {
+        let parts: Vec<&str> = owner_str[1..].split('/').collect();
+        if parts.len() == 2 {
+            (owner_str.to_string(), OwnerType::Team)
+        } else {
+            (owner_str.to_string(), OwnerType::User)
+        }
+    } else {
+        (owner_str.to_string(), OwnerType::Unknown)
+    };
+
+    Ok(Owner {
+        identifier,
+        owner_type,
+    })
 }
 
 #[cfg(test)]
