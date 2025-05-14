@@ -34,7 +34,7 @@ pub fn codeowners_parse(
 
     let files = find_files(path)?;
 
-    //dbg!(&files);
+    dbg!(&files);
 
     println!("CODEOWNERS parsing completed successfully");
     Ok(())

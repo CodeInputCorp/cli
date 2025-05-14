@@ -1,3 +1,4 @@
+use ignore::Walk;
 use std::path::{Path, PathBuf};
 use utils::error::{Error, Result};
 
@@ -26,19 +27,15 @@ pub fn find_codeowners_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf
     Ok(result)
 }
 
-// Find all files in the given directory and its subdirectories
+/// Find all files in the given directory and its subdirectories
 pub fn find_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf>> {
-    let mut result = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(base_path) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_file() {
-                result.push(path);
-            } else if path.is_dir() {
-                result.extend(find_files(path)?);
-            }
-        }
-    }
+    let result = Walk::new(base_path)
+        .filter_map(|entry| entry.ok())
+        .filter(|e| e.path().is_file())
+        .filter(|e| e.clone().file_name().to_str().unwrap() != "CODEOWNERS")
+        .map(|entry| entry.into_path())
+        .collect::<Vec<_>>();
+
     Ok(result)
 }
 
