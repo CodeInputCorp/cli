@@ -11,14 +11,14 @@ pub struct CodeownersEntry {
 }
 
 /// Detailed owner representation
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Owner {
     pub identifier: String,
     pub owner_type: OwnerType,
 }
 
 /// Owner type classification
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum OwnerType {
     User,
     Team,
@@ -28,7 +28,7 @@ pub enum OwnerType {
 }
 
 /// Tag representation
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tag(pub String);
 
 #[derive(Clone, Debug, PartialEq)]
