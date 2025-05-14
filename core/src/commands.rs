@@ -1,3 +1,4 @@
+use crate::common::find_files;
 use crate::types::OutputFormat;
 
 use utils::app_config::AppConfig;
@@ -30,6 +31,10 @@ pub fn codeowners_parse(
         .collect::<Vec<_>>();
 
     dbg!(&parsed_codeowners);
+
+    let files = find_files(path)?;
+
+    //dbg!(&files);
 
     println!("CODEOWNERS parsing completed successfully");
     Ok(())

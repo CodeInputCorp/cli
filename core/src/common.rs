@@ -26,6 +26,22 @@ pub fn find_codeowners_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf
     Ok(result)
 }
 
+// Find all files in the given directory and its subdirectories
+pub fn find_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf>> {
+    let mut result = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(base_path) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                result.push(path);
+            } else if path.is_dir() {
+                result.extend(find_files(path)?);
+            }
+        }
+    }
+    Ok(result)
+}
+
 /// Parse CODEOWNERS
 pub fn parse_codeowners(source_path: &Path) -> Result<Vec<CodeownersEntry>> {
     let content = std::fs::read_to_string(source_path)?;
@@ -65,7 +81,7 @@ fn parse_line(line: &str, line_num: usize, source_path: &Path) -> Result<Option<
         i += 1;
     }
 
-    // Collect tags
+    // Collect tags with lookahead to check for comments
     while i < tokens.len() {
         let token = tokens[i];
         if token.starts_with('#') {
@@ -73,13 +89,19 @@ fn parse_line(line: &str, line_num: usize, source_path: &Path) -> Result<Option<
                 // Comment starts, break
                 break;
             } else {
+                // Check if the next token is not a tag (doesn't start with '#')
+                let next_is_non_tag = i + 1 < tokens.len() && !tokens[i + 1].starts_with('#');
+                if next_is_non_tag {
+                    // This token is part of the comment, break
+                    break;
+                }
                 tags.push(Tag(token[1..].to_string()));
+                i += 1;
             }
         } else {
             // Non-tag, part of comment
             break;
         }
-        i += 1;
     }
 
     Ok(Some(CodeownersEntry {
@@ -318,6 +340,119 @@ mod tests {
         let owner = parse_owner("NOOWNER-plus")?;
         assert_eq!(owner.identifier, "NOOWNER-plus");
         assert!(matches!(owner.owner_type, OwnerType::Unknown));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_line_pattern_with_owners() -> Result<()> {
+        let source_path = Path::new("/test/CODEOWNERS");
+        let result = parse_line("*.js @qa-team @bob #test", 1, source_path)?;
+
+        assert!(result.is_some());
+        let entry = result.unwrap();
+        assert_eq!(entry.pattern, "*.js");
+        assert_eq!(entry.owners.len(), 2);
+        assert_eq!(entry.owners[0].identifier, "@qa-team");
+        assert_eq!(entry.owners[1].identifier, "@bob");
+        assert_eq!(entry.tags.len(), 1);
+        assert_eq!(entry.tags[0].0, "test");
+        assert_eq!(entry.line_number, 1);
+        assert_eq!(entry.source_file, source_path);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_line_with_path_pattern() -> Result<()> {
+        let source_path = Path::new("/test/CODEOWNERS");
+        let result = parse_line("/fixtures/ @alice @dave", 2, source_path)?;
+
+        assert!(result.is_some());
+        let entry = result.unwrap();
+        assert_eq!(entry.pattern, "/fixtures/");
+        assert_eq!(entry.owners.len(), 2);
+        assert_eq!(entry.owners[0].identifier, "@alice");
+        assert_eq!(entry.owners[1].identifier, "@dave");
+        assert_eq!(entry.tags.len(), 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_line_comment() -> Result<()> {
+        let source_path = Path::new("/test/CODEOWNERS");
+        let result = parse_line("# this is a comment line", 3, source_path)?;
+
+        assert!(result.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_line_with_multiple_tags_and_comment() -> Result<()> {
+        let source_path = Path::new("/test/CODEOWNERS");
+        let result = parse_line(
+            "/hooks.ts @org/frontend #test #core # this is a comment",
+            4,
+            source_path,
+        )?;
+
+        assert!(result.is_some());
+        let entry = result.unwrap();
+        assert_eq!(entry.pattern, "/hooks.ts");
+        assert_eq!(entry.owners.len(), 1);
+        assert_eq!(entry.owners[0].identifier, "@org/frontend");
+        assert_eq!(entry.tags.len(), 2);
+        assert_eq!(entry.tags[0].0, "test");
+        assert_eq!(entry.tags[1].0, "core");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_line_empty() -> Result<()> {
+        let source_path = Path::new("/test/CODEOWNERS");
+        let result = parse_line("", 5, source_path)?;
+
+        assert!(result.is_none());
+
+        let result = parse_line("    ", 6, source_path)?;
+        assert!(result.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_line_security_tag() -> Result<()> {
+        let source_path = Path::new("/test/.husky/CODEOWNERS");
+        let result = parse_line("pre-commit @org/security @frank #security", 2, source_path)?;
+
+        assert!(result.is_some());
+        let entry = result.unwrap();
+        assert_eq!(entry.pattern, "pre-commit");
+        assert_eq!(entry.owners.len(), 2);
+        assert_eq!(entry.owners[0].identifier, "@org/security");
+        assert_eq!(entry.owners[1].identifier, "@frank");
+        assert_eq!(entry.tags.len(), 1);
+        assert_eq!(entry.tags[0].0, "security");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_line_with_pound_tag_edge_case() -> Result<()> {
+        let source_path = Path::new("/test/CODEOWNERS");
+
+        // Test edge case where # is followed by a space (comment marker)
+        let result = parse_line("*.md @docs-team #not a tag", 7, source_path)?;
+
+        assert!(result.is_some());
+        let entry = result.unwrap();
+        assert_eq!(entry.pattern, "*.md");
+        assert_eq!(entry.owners.len(), 1);
+        assert_eq!(entry.owners[0].identifier, "@docs-team");
+        assert_eq!(entry.tags.len(), 0); // No tags, just a comment
 
         Ok(())
     }
