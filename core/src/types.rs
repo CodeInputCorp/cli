@@ -7,7 +7,7 @@ pub struct CodeownersEntry {
     pub line_number: usize,
     pub pattern: String,
     pub owners: Vec<Owner>,
-    pub tags: Vec<String>,
+    pub tags: Vec<Tag>,
 }
 
 /// Detailed owner representation
@@ -23,8 +23,13 @@ pub enum OwnerType {
     User,
     Team,
     Email,
+    Unowned,
     Unknown,
 }
+
+/// Tag representation
+#[derive(Debug)]
+pub struct Tag(pub String);
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum OutputFormat {

@@ -19,7 +19,17 @@ pub fn codeowners_parse(
 
     let codeowners_files = crate::common::find_codeowners_files(path)?;
 
-    dbg!(codeowners_files);
+    dbg!(&codeowners_files);
+
+    let parsed_codeowners = codeowners_files
+        .iter()
+        .filter_map(|file| {
+            let parsed = crate::common::parse_codeowners(file).ok()?;
+            Some((file, parsed))
+        })
+        .collect::<Vec<_>>();
+
+    dbg!(&parsed_codeowners);
 
     println!("CODEOWNERS parsing completed successfully");
     Ok(())
