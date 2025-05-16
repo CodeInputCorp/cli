@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate log;
 
+pub mod cache;
 pub mod commands;
 pub mod common;
 pub mod types;

@@ -1,3 +1,4 @@
+use crate::cache::build_cache;
 use crate::common::find_files;
 use crate::types::{CodeownersEntry, OutputFormat};
 
@@ -20,7 +21,7 @@ pub fn codeowners_parse(
 
     let codeowners_files = crate::common::find_codeowners_files(path)?;
 
-    dbg!(&codeowners_files);
+    //dbg!(&codeowners_files);
 
     let parsed_codeowners: Vec<CodeownersEntry> = codeowners_files
         .iter()
@@ -31,18 +32,12 @@ pub fn codeowners_parse(
         .flatten()
         .collect();
 
-    dbg!(&parsed_codeowners);
+    //dbg!(&parsed_codeowners);
 
     let files = find_files(path)?;
 
-    dbg!(&files);
-
-    for file in files {
-        let owners = crate::common::find_owners_for_file(&file, parsed_codeowners.as_slice());
-        let tags = crate::common::find_tags_for_file(&file, parsed_codeowners.as_slice());
-        println!("File: {} - Owners: {:?}", file.display(), owners);
-        println!("File: {} - Tags: {:?}", file.display(), tags);
-    }
+    //dbg!(&files);
+    build_cache(parsed_codeowners, files)?;
 
     println!("CODEOWNERS parsing completed successfully");
     Ok(())

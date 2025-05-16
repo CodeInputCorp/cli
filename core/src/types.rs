@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
+
 /// CODEOWNERS entry with source tracking
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CodeownersEntry {
     pub source_file: PathBuf,
     pub line_number: usize,
@@ -11,14 +13,14 @@ pub struct CodeownersEntry {
 }
 
 /// Detailed owner representation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Owner {
     pub identifier: String,
     pub owner_type: OwnerType,
 }
 
 /// Owner type classification
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum OwnerType {
     User,
     Team,
@@ -28,10 +30,10 @@ pub enum OwnerType {
 }
 
 /// Tag representation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Tag(pub String);
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OutputFormat {
     Text,
     Json,
@@ -46,4 +48,23 @@ impl std::fmt::Display for OutputFormat {
             OutputFormat::Bincode => write!(f, "bincode"),
         }
     }
+}
+
+// Cache related types
+/// File entry in the ownership cache
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileEntry {
+    pub path: PathBuf,
+    pub owners: Vec<Owner>,
+    pub tags: Vec<Tag>,
+}
+
+/// Cache for storing parsed CODEOWNERS information
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CodeownersCache {
+    pub entries: Vec<CodeownersEntry>,
+    pub files: Vec<FileEntry>,
+    // Derived data for lookups
+    pub owners_map: std::collections::HashMap<Owner, Vec<PathBuf>>,
+    pub tags_map: std::collections::HashMap<Tag, Vec<PathBuf>>,
 }
