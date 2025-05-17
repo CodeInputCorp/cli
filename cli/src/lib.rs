@@ -5,7 +5,10 @@ use clap_complete::{
 };
 use std::path::PathBuf;
 
-use core::{commands, types::OutputFormat};
+use core::{
+    commands,
+    types::{CacheEncoding, OutputFormat},
+};
 use utils::app_config::AppConfig;
 use utils::error::Result;
 use utils::types::LogLevel;
@@ -94,8 +97,12 @@ enum CodeownersSubcommand {
         path: PathBuf,
 
         /// Custom cache file location
-        #[arg(long, value_name = "FILE")]
+        #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
         cache_file: Option<PathBuf>,
+
+        /// Output format: json|bincode
+        #[arg(long, value_name = "FORMAT", default_value = "bincode", value_parser = parse_cache_encoding)]
+        format: CacheEncoding,
     },
 
     #[clap(
@@ -182,9 +189,11 @@ pub fn cli_match() -> Result<()> {
 /// Handle codeowners subcommands
 pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
     match subcommand {
-        CodeownersSubcommand::Parse { path, cache_file } => {
-            commands::codeowners_parse(path, cache_file.as_deref())
-        }
+        CodeownersSubcommand::Parse {
+            path,
+            cache_file,
+            format,
+        } => commands::codeowners_parse(path, cache_file.as_deref(), *format),
         CodeownersSubcommand::ListFiles {
             path,
             tags,
@@ -209,5 +218,13 @@ fn parse_output_format(s: &str) -> std::result::Result<OutputFormat, String> {
         "json" => Ok(OutputFormat::Json),
         "bincode" => Ok(OutputFormat::Bincode),
         _ => Err(format!("Invalid output format: {}", s)),
+    }
+}
+
+fn parse_cache_encoding(s: &str) -> std::result::Result<CacheEncoding, String> {
+    match s.to_lowercase().as_str() {
+        "bincode" => Ok(CacheEncoding::Bincode),
+        "json" => Ok(CacheEncoding::Json),
+        _ => Err(format!("Invalid cache encoding: {}", s)),
     }
 }

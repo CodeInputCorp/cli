@@ -1,6 +1,6 @@
-use crate::cache::build_cache;
+use crate::cache::{build_cache, store_cache};
 use crate::common::find_files;
-use crate::types::{CodeownersEntry, OutputFormat};
+use crate::types::{CacheEncoding, CodeownersEntry, OutputFormat};
 
 use utils::app_config::AppConfig;
 use utils::error::Result;
@@ -15,7 +15,7 @@ pub fn config() -> Result<()> {
 
 /// Preprocess CODEOWNERS files and build ownership map
 pub fn codeowners_parse(
-    path: &std::path::Path, cache_file: Option<&std::path::Path>,
+    path: &std::path::Path, cache_file: Option<&std::path::Path>, encoding: CacheEncoding,
 ) -> Result<()> {
     println!("Parsing CODEOWNERS files at {}", path.display());
 
@@ -37,7 +37,9 @@ pub fn codeowners_parse(
     let files = find_files(path)?;
 
     //dbg!(&files);
-    build_cache(parsed_codeowners, files)?;
+    let cache = build_cache(parsed_codeowners, files)?;
+
+    store_cache(&cache, cache_file.unwrap(), encoding)?;
 
     println!("CODEOWNERS parsing completed successfully");
     Ok(())

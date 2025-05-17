@@ -68,3 +68,9 @@ pub struct CodeownersCache {
     pub owners_map: std::collections::HashMap<Owner, Vec<PathBuf>>,
     pub tags_map: std::collections::HashMap<Tag, Vec<PathBuf>>,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CacheEncoding {
+    Bincode,
+    Json,
+}
