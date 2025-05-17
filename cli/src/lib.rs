@@ -136,6 +136,10 @@ enum CodeownersSubcommand {
         about = "Display aggregated owner statistics and associations"
     )]
     ListOwners {
+        /// Directory path to analyze (default: current directory)
+        #[arg(default_value = ".")]
+        path: Option<PathBuf>,
+
         /// Output format: text|json|bincode
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
@@ -145,6 +149,10 @@ enum CodeownersSubcommand {
         about = "Audit and analyze tag usage across CODEOWNERS files"
     )]
     ListTags {
+        /// Directory path to analyze (default: current directory)
+        #[arg(default_value = ".")]
+        path: Option<PathBuf>,
+
         /// Output format: text|json|bincode
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
@@ -207,8 +215,12 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             *unowned,
             format,
         ),
-        CodeownersSubcommand::ListOwners { format } => commands::codeowners_list_owners(format),
-        CodeownersSubcommand::ListTags { format } => commands::codeowners_list_tags(format),
+        CodeownersSubcommand::ListOwners { path, format } => {
+            commands::codeowners_list_owners(path.as_deref(), format)
+        }
+        CodeownersSubcommand::ListTags { path, format } => {
+            commands::codeowners_list_tags(path.as_deref(), format)
+        }
     }
 }
 

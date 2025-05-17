@@ -29,6 +29,18 @@ pub enum OwnerType {
     Unknown,
 }
 
+impl std::fmt::Display for OwnerType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OwnerType::User => write!(f, "User"),
+            OwnerType::Team => write!(f, "Team"),
+            OwnerType::Email => write!(f, "Email"),
+            OwnerType::Unowned => write!(f, "Unowned"),
+            OwnerType::Unknown => write!(f, "Unknown"),
+        }
+    }
+}
+
 /// Tag representation
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Tag(pub String);
