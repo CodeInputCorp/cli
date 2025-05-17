@@ -1,15 +1,15 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use crate::common::{find_owners_for_file, find_tags_for_file};
+use crate::common::{collect_owners, collect_tags, find_owners_for_file, find_tags_for_file};
 use crate::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
 use utils::error::{Error, Result};
 
 /// Create a cache from parsed CODEOWNERS entries and files
 pub fn build_cache(entries: Vec<CodeownersEntry>, files: Vec<PathBuf>) -> Result<CodeownersCache> {
     let mut file_entries = Vec::new();
-    let owners_map = std::collections::HashMap::new();
-    let tags_map = std::collections::HashMap::new();
+    let mut owners_map = std::collections::HashMap::new();
+    let mut tags_map = std::collections::HashMap::new();
 
     // Process each file to find owners and tags
     for file_path in files {
@@ -24,6 +24,28 @@ pub fn build_cache(entries: Vec<CodeownersEntry>, files: Vec<PathBuf>) -> Result
         };
         file_entries.push(file_entry);
     }
+
+    // Process each owner
+    let owners = collect_owners(&entries);
+    owners.iter().for_each(|owner| {
+        let paths = owners_map.entry(owner.clone()).or_insert_with(Vec::new);
+        for file_entry in &file_entries {
+            if file_entry.owners.contains(owner) {
+                paths.push(file_entry.path.clone());
+            }
+        }
+    });
+
+    // Process each tag
+    let tags = collect_tags(&entries);
+    tags.iter().for_each(|tag| {
+        let paths = tags_map.entry(tag.clone()).or_insert_with(Vec::new);
+        for file_entry in &file_entries {
+            if file_entry.tags.contains(tag) {
+                paths.push(file_entry.path.clone());
+            }
+        }
+    });
 
     Ok(CodeownersCache {
         entries,

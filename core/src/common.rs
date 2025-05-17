@@ -5,7 +5,7 @@ use ignore::{
 use std::path::{Path, PathBuf};
 use utils::error::{Error, Result};
 
-use crate::types::{CodeownersEntry, Owner, OwnerType, Tag};
+use crate::types::{CodeownersEntry, FileEntry, Owner, OwnerType, Tag};
 
 /// Find CODEOWNERS files recursively in the given directory and its subdirectories
 pub fn find_codeowners_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf>> {
@@ -311,6 +311,50 @@ pub fn find_tags_for_file(file_path: &Path, entries: &[CodeownersEntry]) -> Resu
         .first()
         .map(|(entry, _)| entry.tags.clone())
         .unwrap_or_default())
+}
+
+/// Find all files owned by a specific owner
+pub fn find_files_for_owner(files: &[FileEntry], owner: &Owner) -> Vec<PathBuf> {
+    files
+        .iter()
+        .filter(|file_entry| file_entry.owners.contains(owner))
+        .map(|file_entry| file_entry.path.clone())
+        .collect()
+}
+
+/// Find all files tagged with a specific tag
+pub fn find_files_for_tag(files: &[FileEntry], tag: &Tag) -> Vec<PathBuf> {
+    files
+        .iter()
+        .filter(|file_entry| file_entry.tags.contains(tag))
+        .map(|file_entry| file_entry.path.clone())
+        .collect()
+}
+
+/// Collect all unique owners from CODEOWNERS entries
+pub fn collect_owners(entries: &[CodeownersEntry]) -> Vec<Owner> {
+    let mut owners = std::collections::HashSet::new();
+
+    for entry in entries {
+        for owner in &entry.owners {
+            owners.insert(owner.clone());
+        }
+    }
+
+    owners.into_iter().collect()
+}
+
+/// Collect all unique tags from CODEOWNERS entries
+pub fn collect_tags(entries: &[CodeownersEntry]) -> Vec<Tag> {
+    let mut tags = std::collections::HashSet::new();
+
+    for entry in entries {
+        for tag in &entry.tags {
+            tags.insert(tag.clone());
+        }
+    }
+
+    tags.into_iter().collect()
 }
 
 #[cfg(test)]

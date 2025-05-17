@@ -39,7 +39,7 @@ pub fn codeowners_parse(
     //dbg!(&files);
     let cache = build_cache(parsed_codeowners, files)?;
 
-    //store_cache(&cache, cache_file.unwrap(), encoding)?;
+    store_cache(&cache, cache_file.unwrap(), encoding)?;
 
     let cache = load_cache(cache_file.unwrap())?;
 
