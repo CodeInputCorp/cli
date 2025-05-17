@@ -1,4 +1,4 @@
-use crate::cache::{build_cache, store_cache};
+use crate::cache::{build_cache, load_cache, store_cache};
 use crate::common::find_files;
 use crate::types::{CacheEncoding, CodeownersEntry, OutputFormat};
 
@@ -39,7 +39,11 @@ pub fn codeowners_parse(
     //dbg!(&files);
     let cache = build_cache(parsed_codeowners, files)?;
 
-    store_cache(&cache, cache_file.unwrap(), encoding)?;
+    //store_cache(&cache, cache_file.unwrap(), encoding)?;
+
+    let cache = load_cache(cache_file.unwrap())?;
+
+    dbg!(cache);
 
     println!("CODEOWNERS parsing completed successfully");
     Ok(())
