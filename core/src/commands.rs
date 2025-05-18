@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use crate::cache::{build_cache, load_cache, store_cache};
 use crate::common::find_files;
 use crate::types::{CacheEncoding, CodeownersEntry, OutputFormat};
@@ -160,10 +162,16 @@ pub fn codeowners_list_files(
             println!("{}", serde_json::to_string_pretty(&filtered_files).unwrap());
         }
         OutputFormat::Bincode => {
-            eprintln!("Binary output to stdout not supported for file listing");
-            return Err(utils::error::Error::new(
-                "Binary output to stdout not supported",
-            ));
+            let encoded =
+                bincode::serde::encode_to_vec(&filtered_files, bincode::config::standard())
+                    .map_err(|e| {
+                        utils::error::Error::new(&format!("Serialization error: {}", e))
+                    })?;
+
+            // Write raw binary bytes to stdout
+            io::stdout()
+                .write_all(&encoded)
+                .map_err(|e| utils::error::Error::new(&format!("IO error: {}", e)))?;
         }
     }
 
@@ -238,10 +246,16 @@ pub fn codeowners_list_owners(path: Option<&std::path::Path>, format: &OutputFor
             println!("{}", serde_json::to_string_pretty(&owners_data).unwrap());
         }
         OutputFormat::Bincode => {
-            eprintln!("Binary output to stdout not supported for owners listing");
-            return Err(utils::error::Error::new(
-                "Binary output to stdout not supported",
-            ));
+            let encoded =
+                bincode::serde::encode_to_vec(&cache.owners_map, bincode::config::standard())
+                    .map_err(|e| {
+                        utils::error::Error::new(&format!("Serialization error: {}", e))
+                    })?;
+
+            // Write raw binary bytes to stdout
+            io::stdout()
+                .write_all(&encoded)
+                .map_err(|e| utils::error::Error::new(&format!("IO error: {}", e)))?;
         }
     }
 
@@ -319,10 +333,16 @@ pub fn codeowners_list_tags(path: Option<&std::path::Path>, format: &OutputForma
             println!("{}", serde_json::to_string_pretty(&tags_data).unwrap());
         }
         OutputFormat::Bincode => {
-            eprintln!("Binary output to stdout not supported for tags listing");
-            return Err(utils::error::Error::new(
-                "Binary output to stdout not supported",
-            ));
+            let encoded =
+                bincode::serde::encode_to_vec(&cache.tags_map, bincode::config::standard())
+                    .map_err(|e| {
+                        utils::error::Error::new(&format!("Serialization error: {}", e))
+                    })?;
+
+            // Write raw binary bytes to stdout
+            io::stdout()
+                .write_all(&encoded)
+                .map_err(|e| utils::error::Error::new(&format!("IO error: {}", e)))?;
         }
     }
 
