@@ -2,8 +2,7 @@ use std::io::{self, Write};
 
 use crate::cache::{build_cache, load_cache, store_cache, sync_cache};
 use crate::common::{find_files, get_repo_hash};
-use crate::parse::parse_repo;
-use crate::types::{CacheEncoding, CodeownersCache, CodeownersEntry, OutputFormat};
+use crate::types::{CacheEncoding, CodeownersEntry, OutputFormat};
 
 use utils::app_config::AppConfig;
 use utils::error::Result;
@@ -21,10 +20,6 @@ pub fn codeowners_parse(
     path: &std::path::Path, cache_file: Option<&std::path::Path>, encoding: CacheEncoding,
 ) -> Result<()> {
     println!("Parsing CODEOWNERS files at {}", path.display());
-
-    let hash = get_repo_hash(path.as_ref())?;
-    dbg!(hash);
-    panic!();
 
     let cache_file = match cache_file {
         Some(file) => path.join(file),
@@ -117,40 +112,107 @@ pub fn codeowners_list_files(
     // Output the filtered files in the requested format
     match format {
         OutputFormat::Text => {
-            for file in filtered_files {
-                let owners_str = file
-                    .owners
-                    .iter()
-                    .map(|o| o.identifier.clone())
-                    .collect::<Vec<_>>()
-                    .join(", ");
+            // Set column widths that work better for most displays
+            let path_width = 45; // Max width for path display
+            let owner_width = 26; // More space for owners
+            let tag_width = 26; // More space for tags
 
-                let tags_str = file
-                    .tags
-                    .iter()
-                    .map(|t| t.0.clone())
-                    .collect::<Vec<_>>()
-                    .join(", ");
+            // Print header
+            println!(
+                "==============================================================================="
+            );
+            println!(
+                " {:<path_width$} {:<owner_width$} {:<tag_width$}",
+                "File Path",
+                "Owners",
+                "Tags",
+                path_width = path_width,
+                owner_width = owner_width,
+                tag_width = tag_width
+            );
+            println!(
+                "==============================================================================="
+            );
 
-                println!("File: {}", file.path.display());
-                println!(
-                    "  Owners: {}",
-                    if owners_str.is_empty() {
-                        "None"
+            // Print each file entry
+            for file in &filtered_files {
+                // Format the path - keep the filename but truncate the path if needed
+                let path_str = file.path.to_string_lossy();
+                let path_display = if path_str.len() > path_width {
+                    // Extract filename
+                    let filename = file
+                        .path
+                        .file_name()
+                        .map(|f| f.to_string_lossy().to_string())
+                        .unwrap_or_default();
+
+                    // Calculate available space for parent path
+                    let available_space = path_width.saturating_sub(filename.len() + 4); // +4 for ".../"
+
+                    if available_space > 5 {
+                        // Show part of the parent path
+                        let parent_path = path_str.to_string();
+                        let start_pos = parent_path.len().saturating_sub(path_width - 3);
+                        format!("...{}", &parent_path[start_pos..])
                     } else {
-                        &owners_str
+                        // Just show the filename with ellipsis
+                        format!(".../{}", filename)
                     }
-                );
+                } else {
+                    path_str.to_string()
+                };
+
+                // Format owners with more space
+                let owners_str = if file.owners.is_empty() {
+                    "None".to_string()
+                } else {
+                    file.owners
+                        .iter()
+                        .map(|o| o.identifier.clone())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                };
+
+                let owners_display = if owners_str.len() > owner_width {
+                    format!("{}...", &owners_str[0..owner_width - 3])
+                } else {
+                    owners_str
+                };
+
+                // Format tags with more space
+                let tags_str = if file.tags.is_empty() {
+                    "None".to_string()
+                } else {
+                    file.tags
+                        .iter()
+                        .map(|t| t.0.clone())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                };
+
+                let tags_display = if tags_str.len() > tag_width {
+                    format!("{}...", &tags_str[0..tag_width - 3])
+                } else {
+                    tags_str
+                };
+
                 println!(
-                    "  Tags: {}",
-                    if tags_str.is_empty() {
-                        "None"
-                    } else {
-                        &tags_str
-                    }
+                    " {:<path_width$} {:<owner_width$} {:<tag_width$}",
+                    path_display,
+                    owners_display,
+                    tags_display,
+                    path_width = path_width,
+                    owner_width = owner_width,
+                    tag_width = tag_width
                 );
-                println!();
             }
+            println!(
+                "==============================================================================="
+            );
+            println!(" Total: {} files", filtered_files.len());
+            println!(
+                "==============================================================================="
+            );
         }
         OutputFormat::Json => {
             println!("{}", serde_json::to_string_pretty(&filtered_files).unwrap());
@@ -185,35 +247,87 @@ pub fn codeowners_list_owners(
     // Process the owners from the cache
     match format {
         OutputFormat::Text => {
-            println!("CODEOWNERS Ownership Report");
-            println!("==========================\n");
+            // Column widths for the table
+            let owner_width = 35; // For owner identifiers
+            let type_width = 10; // For owner type
+            let count_width = 10; // For file count
+            let file_width = 45; // For sample files
+
+            println!(
+                "==============================================================================="
+            );
+            println!(
+                " {:<owner_width$} {:<type_width$} {:<count_width$} {:<file_width$}",
+                "Owner",
+                "Type",
+                "Files",
+                "Sample Files",
+                owner_width = owner_width,
+                type_width = type_width,
+                count_width = count_width,
+                file_width = file_width
+            );
+            println!(
+                "==============================================================================="
+            );
 
             if cache.owners_map.is_empty() {
-                println!("No owners found in the codebase.");
+                println!(" No owners found in the codebase.");
             } else {
                 // Sort owners by number of files they own (descending)
                 let mut owners_with_counts: Vec<_> = cache.owners_map.iter().collect();
                 owners_with_counts.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
 
                 for (owner, paths) in owners_with_counts {
-                    println!("Owner: {} ({})", owner.identifier, owner.owner_type);
-                    println!("Files owned: {}", paths.len());
-
-                    // List first 5 files (to avoid overwhelming output)
-                    if !paths.is_empty() {
-                        println!("Sample files:");
-                        for path in paths.iter().take(5) {
-                            println!("  - {}", path.display());
+                    // Prepare sample file list
+                    let file_samples = if paths.is_empty() {
+                        "None".to_string()
+                    } else {
+                        let samples: Vec<_> = paths
+                            .iter()
+                            .take(3) // Show max 3 files as samples
+                            .map(|p| {
+                                let file_name = p
+                                    .file_name()
+                                    .map(|f| f.to_string_lossy().to_string())
+                                    .unwrap_or_else(|| p.to_string_lossy().to_string());
+                                file_name
+                            })
+                            .collect();
+                        let mut display = samples.join(", ");
+                        if paths.len() > 3 {
+                            display.push_str(&format!(" (+{})", paths.len() - 3));
                         }
+                        display
+                    };
 
-                        if paths.len() > 5 {
-                            println!("  ... and {} more", paths.len() - 5);
-                        }
-                    }
+                    // Trim the owner identifier if too long
+                    let owner_display = if owner.identifier.len() > owner_width {
+                        format!("{}...", &owner.identifier[0..owner_width - 3])
+                    } else {
+                        owner.identifier.clone()
+                    };
 
-                    println!(); // Empty line between owners
+                    println!(
+                        " {:<owner_width$} {:<type_width$} {:<count_width$} {:<file_width$}",
+                        owner_display,
+                        owner.owner_type,
+                        paths.len(),
+                        file_samples,
+                        owner_width = owner_width,
+                        type_width = type_width,
+                        count_width = count_width,
+                        file_width = file_width
+                    );
                 }
             }
+            println!(
+                "==============================================================================="
+            );
+            println!(" Total: {} owners", cache.owners_map.len());
+            println!(
+                "==============================================================================="
+            );
         }
         OutputFormat::Json => {
             // Convert to a more friendly JSON structure
@@ -264,35 +378,87 @@ pub fn codeowners_list_tags(
     // Process the tags from the cache
     match format {
         OutputFormat::Text => {
-            println!("CODEOWNERS Tags Report");
-            println!("======================\n");
+            // Column widths for the table
+            let tag_width = 30; // For tag name
+            let count_width = 10; // For file count
+            let files_width = 60; // For sample files
+
+            println!(
+                "==============================================================================="
+            );
+            println!(
+                " {:<tag_width$} {:<count_width$} {:<files_width$}",
+                "Tag",
+                "Files",
+                "Sample Files",
+                tag_width = tag_width,
+                count_width = count_width,
+                files_width = files_width
+            );
+            println!(
+                "==============================================================================="
+            );
 
             if cache.tags_map.is_empty() {
-                println!("No tags found in the codebase.");
+                println!(" No tags found in the codebase.");
             } else {
                 // Sort tags by number of files they're associated with (descending)
                 let mut tags_with_counts: Vec<_> = cache.tags_map.iter().collect();
                 tags_with_counts.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
 
                 for (tag, paths) in tags_with_counts {
-                    println!("Tag: {}", tag.0);
-                    println!("Files tagged: {}", paths.len());
+                    // Prepare sample file list - show filenames only, not full paths
+                    let file_samples = if paths.is_empty() {
+                        "None".to_string()
+                    } else {
+                        let samples: Vec<_> = paths
+                            .iter()
+                            .take(5) // Show max 5 files as samples
+                            .map(|p| {
+                                p.file_name()
+                                    .map(|f| f.to_string_lossy().to_string())
+                                    .unwrap_or_else(|| p.to_string_lossy().to_string())
+                            })
+                            .collect();
 
-                    // List first 5 files (to avoid overwhelming output)
-                    if !paths.is_empty() {
-                        println!("Sample files:");
-                        for path in paths.iter().take(5) {
-                            println!("  - {}", path.display());
-                        }
-
+                        let mut display = samples.join(", ");
                         if paths.len() > 5 {
-                            println!("  ... and {} more", paths.len() - 5);
+                            display.push_str(&format!(" (+{})", paths.len() - 5));
                         }
-                    }
 
-                    println!(); // Empty line between tags
+                        // Truncate if too long for display
+                        if display.len() > files_width {
+                            format!("{}...", &display[0..files_width - 3])
+                        } else {
+                            display
+                        }
+                    };
+
+                    // Display the tag name, truncate if needed
+                    let tag_display = if tag.0.len() > tag_width {
+                        format!("{}...", &tag.0[0..tag_width - 3])
+                    } else {
+                        tag.0.clone()
+                    };
+
+                    println!(
+                        " {:<tag_width$} {:<count_width$} {:<files_width$}",
+                        tag_display,
+                        paths.len(),
+                        file_samples,
+                        tag_width = tag_width,
+                        count_width = count_width,
+                        files_width = files_width
+                    );
                 }
             }
+            println!(
+                "==============================================================================="
+            );
+            println!(" Total: {} tags", cache.tags_map.len());
+            println!(
+                "==============================================================================="
+            );
         }
         OutputFormat::Json => {
             // Convert to a more friendly JSON structure

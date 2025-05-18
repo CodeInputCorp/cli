@@ -159,9 +159,7 @@ pub fn sync_cache(
 
     // verify the hash of the cache matches the current repo hash
     let current_hash = get_repo_hash(repo)?;
-    dbg!(current_hash);
     let cache_hash = cache.hash;
-    dbg!(cache_hash);
 
     if cache_hash != current_hash {
         // parse the codeowners files and build the cache
