@@ -1,6 +1,3 @@
 debug = false
 log_level = "info"
-
-[database]
-url = "custom database url"
-variable = "custom variable"
+cache_file = ".codeowners.cache"

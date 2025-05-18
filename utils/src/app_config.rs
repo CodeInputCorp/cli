@@ -15,16 +15,10 @@ lazy_static! {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Database {
-    pub url: String,
-    pub variable: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
     pub debug: bool,
     pub log_level: LogLevel,
-    pub database: Database,
+    pub cache_file: String,
 }
 
 impl AppConfig {
@@ -44,7 +38,7 @@ impl AppConfig {
         }
 
         // Merge settings with env variables
-        builder = builder.add_source(Environment::with_prefix("APP")); // TODO: Merge settings with Clap Settings Arguments
+        builder = builder.add_source(Environment::with_prefix("CODEINPUT")); // TODO: Merge settings with Clap Settings Arguments
 
         // Save Config to RwLoc
         {
@@ -126,7 +120,7 @@ impl TryFrom<Config> for AppConfig {
         Ok(AppConfig {
             debug: config.get_bool("debug")?,
             log_level: config.get::<LogLevel>("log_level")?,
-            database: config.get::<Database>("database")?,
+            cache_file: config.get::<String>("cache_file")?,
         })
     }
 }

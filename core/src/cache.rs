@@ -125,3 +125,29 @@ pub fn load_cache(path: &Path) -> Result<CodeownersCache> {
         }
     }
 }
+
+pub fn sync_cache(
+    repo: &std::path::Path, cache_file: Option<&std::path::Path>,
+) -> Result<CodeownersCache> {
+    let config_cache_file = utils::app_config::AppConfig::fetch()?.cache_file.clone();
+
+    let cache_file: &std::path::Path = match cache_file {
+        Some(file) => file.into(),
+        None => std::path::Path::new(&config_cache_file),
+    };
+
+    // Verify that the cache file exists
+    if !repo.join(cache_file).exists() {
+        // parse the codeowners files and build the cache
+        return parse_repo(&repo, &cache_file);
+    }
+
+    // Load the cache from the specified file
+    load_cache(&repo.join(cache_file)).map_err(|e| {
+        utils::error::Error::new(&format!(
+            "Failed to load cache from {}: {}",
+            cache_file.display(),
+            e
+        ))
+    })
+}

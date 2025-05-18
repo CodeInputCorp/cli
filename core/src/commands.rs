@@ -1,8 +1,9 @@
 use std::io::{self, Write};
 
-use crate::cache::{build_cache, load_cache, store_cache};
+use crate::cache::{build_cache, load_cache, store_cache, sync_cache};
 use crate::common::find_files;
-use crate::types::{CacheEncoding, CodeownersEntry, OutputFormat};
+use crate::parse::parse_repo;
+use crate::types::{CacheEncoding, CodeownersCache, CodeownersEntry, OutputFormat};
 
 use utils::app_config::AppConfig;
 use utils::error::Result;
@@ -21,10 +22,18 @@ pub fn codeowners_parse(
 ) -> Result<()> {
     println!("Parsing CODEOWNERS files at {}", path.display());
 
+    let cache_file = match cache_file {
+        Some(file) => path.join(file),
+        None => {
+            let config = utils::app_config::AppConfig::fetch()?;
+            path.join(config.cache_file)
+        }
+    };
+
+    // Collect all CODEOWNERS files in the specified path
     let codeowners_files = crate::common::find_codeowners_files(path)?;
 
-    //dbg!(&codeowners_files);
-
+    // Parse each CODEOWNERS file and collect entries
     let parsed_codeowners: Vec<CodeownersEntry> = codeowners_files
         .iter()
         .filter_map(|file| {
@@ -34,18 +43,17 @@ pub fn codeowners_parse(
         .flatten()
         .collect();
 
-    //dbg!(&parsed_codeowners);
-
+    // Collect all files in the specified path
     let files = find_files(path)?;
 
-    //dbg!(&files);
+    // Build the cache from the parsed CODEOWNERS entries and the files
     let cache = build_cache(parsed_codeowners, files)?;
 
-    store_cache(&cache, cache_file.unwrap(), encoding)?;
+    // Store the cache in the specified file
+    store_cache(&cache, &cache_file, encoding)?;
 
-    let cache = load_cache(cache_file.unwrap())?;
-
-    dbg!(cache);
+    // Test the cache by loading it back
+    let _cache = load_cache(&cache_file)?;
 
     println!("CODEOWNERS parsing completed successfully");
 
@@ -54,33 +62,14 @@ pub fn codeowners_parse(
 
 /// Find and list files with their owners based on filter criteria
 pub fn codeowners_list_files(
-    path: Option<&std::path::Path>, tags: Option<&str>, owners: Option<&str>, unowned: bool,
-    format: &OutputFormat,
+    repo: Option<&std::path::Path>, tags: Option<&str>, owners: Option<&str>, unowned: bool,
+    format: &OutputFormat, cache_file: Option<&std::path::Path>,
 ) -> Result<()> {
-    let path_str = path.map_or(".".into(), |p| p.display().to_string());
-    info!("Listing files in {}", path_str);
-    info!("Tags filter: {:?}", tags);
-    info!("Owners filter: {:?}", owners);
-    info!("Unowned only: {}", unowned);
-    info!("Output format: {}", format);
-
-    // Determine the cache file path based on repository path
-    let repo_path = path.unwrap_or_else(|| std::path::Path::new("."));
-    //let config = utils::app_config::AppConfig::fetch()?;
-    // let cache_dir = config
-    //     .cache_dir
-    //     .unwrap_or_else(|| repo_path.join(".codeowners.cache"));
-    let cache_file = repo_path.join(".codeowners.cache");
-
-    if !cache_file.exists() {
-        return Err(utils::error::Error::new(&format!(
-            "Cache file not found at {}. Please run 'codeowners parse' first.",
-            cache_file.display()
-        )));
-    }
+    // Repository path
+    let repo = repo.unwrap_or_else(|| std::path::Path::new("."));
 
     // Load the cache
-    let cache = load_cache(&cache_file)?;
+    let cache = sync_cache(repo, cache_file)?;
 
     // Filter files based on criteria
     let filtered_files = cache
@@ -179,23 +168,14 @@ pub fn codeowners_list_files(
 }
 
 /// Display aggregated owner statistics and associations
-pub fn codeowners_list_owners(path: Option<&std::path::Path>, format: &OutputFormat) -> Result<()> {
-    info!("Listing owners");
-    info!("Output format: {}", format);
-
-    // Determine the cache file path based on repository path
-    let repo_path = path.unwrap_or_else(|| std::path::Path::new("."));
-    let cache_file = repo_path.join(".codeowners.cache");
-
-    if !cache_file.exists() {
-        return Err(utils::error::Error::new(&format!(
-            "Cache file not found at {}. Please run 'codeowners parse' first.",
-            cache_file.display()
-        )));
-    }
+pub fn codeowners_list_owners(
+    repo: Option<&std::path::Path>, format: &OutputFormat, cache_file: Option<&std::path::Path>,
+) -> Result<()> {
+    // Repository path
+    let repo = repo.unwrap_or_else(|| std::path::Path::new("."));
 
     // Load the cache
-    let cache = load_cache(&cache_file)?;
+    let cache = sync_cache(repo, cache_file)?;
 
     // Process the owners from the cache
     match format {
@@ -267,23 +247,14 @@ pub fn codeowners_list_owners(path: Option<&std::path::Path>, format: &OutputFor
 }
 
 /// Audit and analyze tag usage across CODEOWNERS files
-pub fn codeowners_list_tags(path: Option<&std::path::Path>, format: &OutputFormat) -> Result<()> {
-    info!("Listing tags");
-    info!("Output format: {}", format);
-
-    // Determine the cache file path based on repository path
-    let repo_path = path.unwrap_or_else(|| std::path::Path::new("."));
-    let cache_file = repo_path.join(".codeowners.cache");
-
-    if !cache_file.exists() {
-        return Err(utils::error::Error::new(&format!(
-            "Cache file not found at {}. Please run 'codeowners parse' first.",
-            cache_file.display()
-        )));
-    }
+pub fn codeowners_list_tags(
+    repo: Option<&std::path::Path>, format: &OutputFormat, cache_file: Option<&std::path::Path>,
+) -> Result<()> {
+    // Repository path
+    let repo = repo.unwrap_or_else(|| std::path::Path::new("."));
 
     // Load the cache
-    let cache = load_cache(&cache_file)?;
+    let cache = sync_cache(repo, cache_file)?;
 
     // Process the tags from the cache
     match format {

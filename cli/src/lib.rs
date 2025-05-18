@@ -129,6 +129,10 @@ enum CodeownersSubcommand {
         /// Output format: text|json|bincode
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
+
+        /// Custom cache file location
+        #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
+        cache_file: Option<PathBuf>,
     },
 
     #[clap(
@@ -143,6 +147,10 @@ enum CodeownersSubcommand {
         /// Output format: text|json|bincode
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
+
+        /// Custom cache file location
+        #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
+        cache_file: Option<PathBuf>,
     },
     #[clap(
         name = "list-tags",
@@ -156,6 +164,10 @@ enum CodeownersSubcommand {
         /// Output format: text|json|bincode
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
+
+        /// Custom cache file location
+        #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
+        cache_file: Option<PathBuf>,
     },
 }
 
@@ -208,19 +220,25 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             owners,
             unowned,
             format,
+            cache_file,
         } => commands::codeowners_list_files(
             path.as_deref(),
             tags.as_deref(),
             owners.as_deref(),
             *unowned,
             format,
+            cache_file.as_deref(),
         ),
-        CodeownersSubcommand::ListOwners { path, format } => {
-            commands::codeowners_list_owners(path.as_deref(), format)
-        }
-        CodeownersSubcommand::ListTags { path, format } => {
-            commands::codeowners_list_tags(path.as_deref(), format)
-        }
+        CodeownersSubcommand::ListOwners {
+            path,
+            format,
+            cache_file,
+        } => commands::codeowners_list_owners(path.as_deref(), format, cache_file.as_deref()),
+        CodeownersSubcommand::ListTags {
+            path,
+            format,
+            cache_file,
+        } => commands::codeowners_list_tags(path.as_deref(), format, cache_file.as_deref()),
     }
 }
 
