@@ -74,6 +74,7 @@ pub struct FileEntry {
 /// Cache for storing parsed CODEOWNERS information
 #[derive(Debug)]
 pub struct CodeownersCache {
+    pub hash: [u8; 32],
     pub entries: Vec<CodeownersEntry>,
     pub files: Vec<FileEntry>,
     // Derived data for lookups
@@ -89,6 +90,7 @@ impl Serialize for CodeownersCache {
         use serde::ser::SerializeStruct;
 
         let mut state = serializer.serialize_struct("CodeownersCache", 4)?;
+        state.serialize_field("hash", &self.hash)?;
         state.serialize_field("entries", &self.entries)?;
         state.serialize_field("files", &self.files)?;
 
@@ -112,6 +114,7 @@ impl<'de> Deserialize<'de> for CodeownersCache {
     {
         #[derive(Deserialize)]
         struct CodeownersCacheHelper {
+            hash: [u8; 32],
             entries: Vec<CodeownersEntry>,
             files: Vec<FileEntry>,
             owners_map: Vec<(Owner, Vec<PathBuf>)>,
@@ -132,6 +135,7 @@ impl<'de> Deserialize<'de> for CodeownersCache {
         }
 
         Ok(CodeownersCache {
+            hash: helper.hash,
             entries: helper.entries,
             files: helper.files,
             owners_map,

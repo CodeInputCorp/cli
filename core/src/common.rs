@@ -1,7 +1,9 @@
+use git2::{DiffFormat, DiffOptions, Repository};
 use ignore::{
     Walk,
     overrides::{Override, OverrideBuilder},
 };
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use utils::error::{Error, Result};
 
@@ -355,6 +357,52 @@ pub fn collect_tags(entries: &[CodeownersEntry]) -> Vec<Tag> {
     }
 
     tags.into_iter().collect()
+}
+
+pub fn get_repo_hash(repo_path: &Path) -> Result<[u8; 32]> {
+    let repo = Repository::open(repo_path)
+        .map_err(|e| Error::with_source("Failed to open repo", Box::new(e)))?;
+
+    // 1. Get HEAD commit hash (or zeros if unborn)
+    let head_oid = repo
+        .head()
+        .and_then(|r| r.resolve())
+        .and_then(|r| Ok(r.target()))
+        .unwrap_or(None);
+
+    // 2. Get index/staging area tree hash
+    let mut index = repo
+        .index()
+        .map_err(|e| Error::with_source("Failed to get index", Box::new(e)))?;
+
+    let index_tree = index
+        .write_tree()
+        .map_err(|e| Error::with_source("Failed to write index tree", Box::new(e)))?;
+
+    // 3. Calculate hash of unstaged changes
+    // TODO: this doesn't work and also we need to exclude .codeowners.cache file
+    // otherwise the hash will change every time we parse the repo
+    let unstaged_hash = {
+        let diff = repo
+            .diff_index_to_workdir(None, Some(DiffOptions::new().include_untracked(true)))
+            .map_err(|e| Error::with_source("Failed to get diff", Box::new(e)))?;
+
+        let mut hasher = Sha256::new();
+        diff.print(DiffFormat::Patch, |_, _, line| {
+            hasher.update(line.content());
+            true
+        })
+        .map_err(|e| Error::with_source("Failed to print diff", Box::new(e)))?;
+        hasher.finalize()
+    };
+
+    // 4. Combine all components into final hash
+    let mut hasher = Sha256::new();
+    hasher.update(head_oid.unwrap_or(git2::Oid::zero()).as_bytes());
+    hasher.update(index_tree.as_bytes());
+    hasher.update(&unstaged_hash);
+
+    Ok(hasher.finalize().into())
 }
 
 #[cfg(test)]

@@ -2,7 +2,7 @@ use utils::error::Result;
 
 use crate::{
     cache::{build_cache, store_cache},
-    common::{find_codeowners_files, find_files, parse_codeowners},
+    common::{find_codeowners_files, find_files, get_repo_hash, parse_codeowners},
     types::{CacheEncoding, CodeownersCache, CodeownersEntry},
 };
 
@@ -25,8 +25,11 @@ pub fn parse_repo(repo: &std::path::Path, cache_file: &std::path::Path) -> Resul
     // Collect all files in the specified path
     let files = find_files(repo)?;
 
+    // Get the hash of the repository
+    let hash = get_repo_hash(repo)?;
+
     // Build the cache from the parsed CODEOWNERS entries and the files
-    let cache = build_cache(parsed_codeowners, files)?;
+    let cache = build_cache(parsed_codeowners, files, hash)?;
 
     // Store the cache in the specified file
     store_cache(&cache, &repo.join(cache_file), CacheEncoding::Bincode)?;

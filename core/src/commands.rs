@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 
 use crate::cache::{build_cache, load_cache, store_cache, sync_cache};
-use crate::common::find_files;
+use crate::common::{find_files, get_repo_hash};
 use crate::parse::parse_repo;
 use crate::types::{CacheEncoding, CodeownersCache, CodeownersEntry, OutputFormat};
 
@@ -21,6 +21,10 @@ pub fn codeowners_parse(
     path: &std::path::Path, cache_file: Option<&std::path::Path>, encoding: CacheEncoding,
 ) -> Result<()> {
     println!("Parsing CODEOWNERS files at {}", path.display());
+
+    let hash = get_repo_hash(path.as_ref())?;
+    dbg!(hash);
+    panic!();
 
     let cache_file = match cache_file {
         Some(file) => path.join(file),
@@ -47,7 +51,8 @@ pub fn codeowners_parse(
     let files = find_files(path)?;
 
     // Build the cache from the parsed CODEOWNERS entries and the files
-    let cache = build_cache(parsed_codeowners, files)?;
+    let hash = get_repo_hash(path)?;
+    let cache = build_cache(parsed_codeowners, files, hash)?;
 
     // Store the cache in the specified file
     store_cache(&cache, &cache_file, encoding)?;

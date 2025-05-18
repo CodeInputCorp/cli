@@ -1,12 +1,17 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use crate::common::{collect_owners, collect_tags, find_owners_for_file, find_tags_for_file};
+use crate::common::{
+    collect_owners, collect_tags, find_owners_for_file, find_tags_for_file, get_repo_hash,
+};
+use crate::parse::parse_repo;
 use crate::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
 use utils::error::{Error, Result};
 
 /// Create a cache from parsed CODEOWNERS entries and files
-pub fn build_cache(entries: Vec<CodeownersEntry>, files: Vec<PathBuf>) -> Result<CodeownersCache> {
+pub fn build_cache(
+    entries: Vec<CodeownersEntry>, files: Vec<PathBuf>, hash: [u8; 32],
+) -> Result<CodeownersCache> {
     let mut file_entries = Vec::new();
     let mut owners_map = std::collections::HashMap::new();
     let mut tags_map = std::collections::HashMap::new();
@@ -48,6 +53,7 @@ pub fn build_cache(entries: Vec<CodeownersEntry>, files: Vec<PathBuf>) -> Result
     });
 
     Ok(CodeownersCache {
+        hash,
         entries,
         files: file_entries,
         owners_map,
@@ -143,11 +149,24 @@ pub fn sync_cache(
     }
 
     // Load the cache from the specified file
-    load_cache(&repo.join(cache_file)).map_err(|e| {
+    let cache = load_cache(&repo.join(cache_file)).map_err(|e| {
         utils::error::Error::new(&format!(
             "Failed to load cache from {}: {}",
             cache_file.display(),
             e
         ))
-    })
+    })?;
+
+    // verify the hash of the cache matches the current repo hash
+    let current_hash = get_repo_hash(repo)?;
+    dbg!(current_hash);
+    let cache_hash = cache.hash;
+    dbg!(cache_hash);
+
+    if cache_hash != current_hash {
+        // parse the codeowners files and build the cache
+        return parse_repo(&repo, &cache_file);
+    } else {
+        return Ok(cache);
+    }
 }
