@@ -1,6 +1,6 @@
 [package]
 name = "codeinput"
-version = "0.0.1"
+version = "0.0.1-beta"
 authors = ["Abid Omar <contact@omarabid.com>"]
 edition = "2024"
 repository = "https://github.com/CodeInputCorp/cli"
