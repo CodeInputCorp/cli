@@ -11,6 +11,10 @@ description = """
 code input cli.
 """
 
+[[bin]]
+name = "ci"
+path = "src/main.rs"
+
 [features]
 nightly = []
 termlog = ["slog-term"]
