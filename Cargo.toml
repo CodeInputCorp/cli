@@ -21,9 +21,9 @@ journald = ["utils/journald"]
 syslog = ["utils/syslog"]
 
 [dependencies]
-utils = { path = "utils" }
-cli = { path = "cli" }
-core = { path = "core" }
+utils = { path = "utils", version = "0.0.1-beta" }
+cli = { path = "cli" , version = "0.0.1-beta"}
+core = { path = "core" , version = "0.0.1-beta"}
 human-panic = "2.0.0"
 better-panic = "0.3.0"
 log = "0.4.27"

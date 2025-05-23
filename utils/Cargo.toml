@@ -4,6 +4,7 @@ version = "0.0.1-beta"
 authors = ["Abid Omar <contact@omarabid.com>"]
 description = "Various utilities and functionalities"
 edition = "2024"
+publish = false
 
 [features]
 nightly = []
