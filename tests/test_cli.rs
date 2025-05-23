@@ -15,7 +15,7 @@ fn test_cli() {
 
 #[test]
 fn test_version() {
-    let expected_version = "codeinput 0.0.1\n";
+    let expected_version = "codeinput 0.0.1-beta\n";
     let mut cmd = Command::cargo_bin("codeinput").expect("Calling binary failed");
     cmd.arg("--version").assert().stdout(expected_version);
 }

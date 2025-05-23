@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::error::Result;
+use super::error::Result;
 use std::str::FromStr;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -28,7 +28,7 @@ impl std::fmt::Display for LogLevel {
 }
 
 impl FromStr for LogLevel {
-    type Err = crate::error::Error;
+    type Err = super::error::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         match s {

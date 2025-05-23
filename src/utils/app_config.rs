@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::RwLock;
 
 use super::error::Result;
-use crate::types::LogLevel;
+use super::types::LogLevel;
 
 // CONFIG static variable. It's actually an AppConfig
 // inside an RwLock.
@@ -114,7 +114,7 @@ impl AppConfig {
 // Coerce Config into AppConfig
 
 impl TryFrom<Config> for AppConfig {
-    type Error = crate::error::Error;
+    type Error = super::error::Error;
 
     fn try_from(config: Config) -> Result<Self> {
         Ok(AppConfig {

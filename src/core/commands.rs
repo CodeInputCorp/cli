@@ -1,11 +1,11 @@
 use std::io::{self, Write};
 
-use crate::cache::{build_cache, load_cache, store_cache, sync_cache};
-use crate::common::{find_files, get_repo_hash};
-use crate::types::{CacheEncoding, CodeownersEntry, OutputFormat};
+use super::cache::{build_cache, load_cache, store_cache, sync_cache};
+use super::common::{find_files, get_repo_hash};
+use super::types::{CacheEncoding, CodeownersEntry, OutputFormat};
 
-use utils::app_config::AppConfig;
-use utils::error::Result;
+use crate::utils::app_config::AppConfig;
+use crate::utils::error::{Error, Result};
 
 /// Show the configuration file
 pub fn config() -> Result<()> {
@@ -24,19 +24,19 @@ pub fn codeowners_parse(
     let cache_file = match cache_file {
         Some(file) => path.join(file),
         None => {
-            let config = utils::app_config::AppConfig::fetch()?;
+            let config = AppConfig::fetch()?;
             path.join(config.cache_file)
         }
     };
 
     // Collect all CODEOWNERS files in the specified path
-    let codeowners_files = crate::common::find_codeowners_files(path)?;
+    let codeowners_files = super::common::find_codeowners_files(path)?;
 
     // Parse each CODEOWNERS file and collect entries
     let parsed_codeowners: Vec<CodeownersEntry> = codeowners_files
         .iter()
         .filter_map(|file| {
-            let parsed = crate::common::parse_codeowners(file).ok()?;
+            let parsed = super::common::parse_codeowners(file).ok()?;
             Some(parsed)
         })
         .flatten()
@@ -220,14 +220,12 @@ pub fn codeowners_list_files(
         OutputFormat::Bincode => {
             let encoded =
                 bincode::serde::encode_to_vec(&filtered_files, bincode::config::standard())
-                    .map_err(|e| {
-                        utils::error::Error::new(&format!("Serialization error: {}", e))
-                    })?;
+                    .map_err(|e| Error::new(&format!("Serialization error: {}", e)))?;
 
             // Write raw binary bytes to stdout
             io::stdout()
                 .write_all(&encoded)
-                .map_err(|e| utils::error::Error::new(&format!("IO error: {}", e)))?;
+                .map_err(|e| Error::new(&format!("IO error: {}", e)))?;
         }
     }
 
@@ -347,14 +345,12 @@ pub fn codeowners_list_owners(
         OutputFormat::Bincode => {
             let encoded =
                 bincode::serde::encode_to_vec(&cache.owners_map, bincode::config::standard())
-                    .map_err(|e| {
-                        utils::error::Error::new(&format!("Serialization error: {}", e))
-                    })?;
+                    .map_err(|e| Error::new(&format!("Serialization error: {}", e)))?;
 
             // Write raw binary bytes to stdout
             io::stdout()
                 .write_all(&encoded)
-                .map_err(|e| utils::error::Error::new(&format!("IO error: {}", e)))?;
+                .map_err(|e| Error::new(&format!("IO error: {}", e)))?;
         }
     }
 
@@ -477,14 +473,12 @@ pub fn codeowners_list_tags(
         OutputFormat::Bincode => {
             let encoded =
                 bincode::serde::encode_to_vec(&cache.tags_map, bincode::config::standard())
-                    .map_err(|e| {
-                        utils::error::Error::new(&format!("Serialization error: {}", e))
-                    })?;
+                    .map_err(|e| Error::new(&format!("Serialization error: {}", e)))?;
 
             // Write raw binary bytes to stdout
             io::stdout()
                 .write_all(&encoded)
-                .map_err(|e| utils::error::Error::new(&format!("IO error: {}", e)))?;
+                .map_err(|e| Error::new(&format!("IO error: {}", e)))?;
         }
     }
 

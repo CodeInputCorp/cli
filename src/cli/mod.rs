@@ -5,13 +5,13 @@ use clap_complete::{
 };
 use std::path::PathBuf;
 
-use core::{
+use crate::core::{
     commands,
     types::{CacheEncoding, OutputFormat},
 };
-use utils::app_config::AppConfig;
-use utils::error::Result;
-use utils::types::LogLevel;
+use crate::utils::app_config::AppConfig;
+use crate::utils::error::Result;
+use crate::utils::types::LogLevel;
 
 #[derive(Parser, Debug)]
 #[command(

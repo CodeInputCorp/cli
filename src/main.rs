@@ -4,8 +4,12 @@ use human_panic::setup_panic;
 #[cfg(debug_assertions)]
 extern crate better_panic;
 
-use utils::app_config::AppConfig;
-use utils::error::Result;
+pub(crate) mod cli;
+pub(crate) mod core;
+pub(crate) mod utils;
+
+use crate::utils::app_config::AppConfig;
+use crate::utils::error::Result;
 
 /// The main entry point of the application.
 fn main() -> Result<()> {
@@ -25,14 +29,14 @@ fn main() -> Result<()> {
             .install();
     }
 
-    let _guard = utils::logger::setup_logging()?;
+    let _guard = crate::utils::logger::setup_logging()?;
 
     // Initialize Configuration
     let config_contents = include_str!("resources/default_config.toml");
     AppConfig::init(Some(config_contents))?;
 
     // Match Commands
-    cli::cli_match()?;
+    crate::cli::cli_match()?;
 
     Ok(())
 }

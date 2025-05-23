@@ -1,12 +1,12 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use crate::common::{
+use super::common::{
     collect_owners, collect_tags, find_owners_for_file, find_tags_for_file, get_repo_hash,
 };
-use crate::parse::parse_repo;
-use crate::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
-use utils::error::{Error, Result};
+use super::parse::parse_repo;
+use super::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
+use crate::utils::error::{Error, Result};
 
 /// Create a cache from parsed CODEOWNERS entries and files
 pub fn build_cache(
@@ -135,7 +135,9 @@ pub fn load_cache(path: &Path) -> Result<CodeownersCache> {
 pub fn sync_cache(
     repo: &std::path::Path, cache_file: Option<&std::path::Path>,
 ) -> Result<CodeownersCache> {
-    let config_cache_file = utils::app_config::AppConfig::fetch()?.cache_file.clone();
+    let config_cache_file = crate::utils::app_config::AppConfig::fetch()?
+        .cache_file
+        .clone();
 
     let cache_file: &std::path::Path = match cache_file {
         Some(file) => file.into(),
@@ -150,7 +152,7 @@ pub fn sync_cache(
 
     // Load the cache from the specified file
     let cache = load_cache(&repo.join(cache_file)).map_err(|e| {
-        utils::error::Error::new(&format!(
+        crate::utils::error::Error::new(&format!(
             "Failed to load cache from {}: {}",
             cache_file.display(),
             e

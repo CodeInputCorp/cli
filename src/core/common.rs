@@ -1,3 +1,4 @@
+use crate::utils::error::{Error, Result};
 use git2::{DiffFormat, DiffOptions, Repository};
 use ignore::{
     Walk,
@@ -5,9 +6,8 @@ use ignore::{
 };
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
-use utils::error::{Error, Result};
 
-use crate::types::{CodeownersEntry, FileEntry, Owner, OwnerType, Tag};
+use super::types::{CodeownersEntry, FileEntry, Owner, OwnerType, Tag};
 
 /// Find CODEOWNERS files recursively in the given directory and its subdirectories
 pub fn find_codeowners_files<P: AsRef<Path>>(base_path: P) -> Result<Vec<PathBuf>> {

@@ -1,6 +1,6 @@
-use utils::error::Result;
+use crate::utils::error::Result;
 
-use crate::{
+use super::{
     cache::{build_cache, store_cache},
     common::{find_codeowners_files, find_files, get_repo_hash, parse_codeowners},
     types::{CacheEncoding, CodeownersCache, CodeownersEntry},
