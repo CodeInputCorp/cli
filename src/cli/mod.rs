@@ -126,6 +126,10 @@ enum CodeownersSubcommand {
         #[arg(long)]
         unowned: bool,
 
+        /// Show all files including unowned/untagged
+        #[arg(long)]
+        show_all: bool,
+
         /// Output format: text|json|bincode
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
@@ -219,6 +223,7 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             tags,
             owners,
             unowned,
+            show_all,
             format,
             cache_file,
         } => commands::codeowners_list_files(
@@ -226,6 +231,7 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             tags.as_deref(),
             owners.as_deref(),
             *unowned,
+            *show_all,
             format,
             cache_file.as_deref(),
         ),

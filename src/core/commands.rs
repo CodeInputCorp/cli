@@ -63,7 +63,7 @@ pub fn codeowners_parse(
 /// Find and list files with their owners based on filter criteria
 pub fn codeowners_list_files(
     repo: Option<&std::path::Path>, tags: Option<&str>, owners: Option<&str>, unowned: bool,
-    format: &OutputFormat, cache_file: Option<&std::path::Path>,
+    show_all: bool, format: &OutputFormat, cache_file: Option<&std::path::Path>,
 ) -> Result<()> {
     // Repository path
     let repo = repo.unwrap_or_else(|| std::path::Path::new("."));
@@ -105,7 +105,17 @@ pub fn codeowners_list_files(
                 true
             };
 
-            passes_owner_filter && passes_tag_filter && passes_unowned_filter
+            //  exclude unowned/untagged files unless show_all or unowned is specified
+            let passes_ownership_requirement = if show_all || unowned {
+                true
+            } else {
+                !file.owners.is_empty() || !file.tags.is_empty()
+            };
+
+            passes_owner_filter
+                && passes_tag_filter
+                && passes_unowned_filter
+                && passes_ownership_requirement
         })
         .collect::<Vec<_>>();
 
