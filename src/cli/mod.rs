@@ -173,6 +173,27 @@ enum CodeownersSubcommand {
         #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
         cache_file: Option<PathBuf>,
     },
+    #[clap(
+        name = "inspect",
+        about = "Inspect ownership and tags for a specific file"
+    )]
+    Inspect {
+        /// File path to inspect
+        #[arg(value_name = "FILE")]
+        file_path: PathBuf,
+
+        /// Directory path to analyze (default: current directory)
+        #[arg(short, long, default_value = ".")]
+        repo: Option<PathBuf>,
+
+        /// Output format: text|json|bincode
+        #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
+        format: OutputFormat,
+
+        /// Custom cache file location
+        #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
+        cache_file: Option<PathBuf>,
+    },
 }
 
 pub fn cli_match() -> Result<()> {
@@ -245,6 +266,14 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             format,
             cache_file,
         } => commands::codeowners_list_tags(path.as_deref(), format, cache_file.as_deref()),
+        CodeownersSubcommand::Inspect {
+            file_path,
+            repo,
+            format,
+            cache_file,
+        } => {
+            commands::codeowners_inspect(file_path, repo.as_deref(), format, cache_file.as_deref())
+        }
     }
 }
 
