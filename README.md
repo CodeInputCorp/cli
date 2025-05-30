@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [codeinput (ci)](#codeinput-ci)
+  - [Installation](#installation)
+  - [Usage](#usage)
+    - [General Commands](#general-commands)
+    - [CODEOWNERS Management](#codeowners-management)
+    - [Shell Completion](#shell-completion)
+    - [Global Options](#global-options)
+  - [Contributing](#contributing)
+  - [License](#license)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # codeinput (ci)
 
 `codeinput` is a command-line interface (CLI) tool designed for managing and analyzing `CODEOWNERS` files and other source code related tasks. It helps developers understand code ownership, track changes, and maintain codebase health.
