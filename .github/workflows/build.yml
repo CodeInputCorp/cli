@@ -1,78 +1,187 @@
-name: Build
+name: Build and Release
 
-on: [push]
+on:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_name: codeinput
+            archive_name: codeinput-linux.zip
+            binary_path_suffix: release
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary_name: codeinput
+            archive_name: codeinput-macos.zip
+            binary_path_suffix: release
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_name: codeinput.exe
+            archive_name: codeinput-windows.zip
+            binary_path_suffix: release
 
     steps:
       - name: Checkout Source
-        id: checkout-source
         uses: actions/checkout@v2
+
       - name: Set variables
         id: vars
         run: |
-          echo "::set-output name=package_name::$(sed -En 's/name[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1)"      
-          echo "::set-output name=package_version::$(sed -En 's/version[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1)"
-      - run: |
-          echo "${{steps.vars.outputs.package_name}}"
-          echo "${{steps.vars.outputs.package_version}}"
-      - uses: actions/cache@v4.2.0
+          echo "package_name=$(sed -En 's/name[[:space:]]*=[[:space:]]*\"([^\"]+)\"/\1/p' Cargo.toml | head -1)" >> $GITHUB_OUTPUT
+          echo "package_version=$(sed -En 's/version[[:space:]]*=[[:space:]]*\"([^\"]+)\"/\1/p' Cargo.toml | head -1)" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Output variables (for debugging)
+        run: |
+          echo "Package Name: ${{ steps.vars.outputs.package_name }}"
+          echo "Package Version: ${{ steps.vars.outputs.package_version }}"
+          echo "Target: ${{ matrix.target }}"
+          echo "Binary Name: ${{ matrix.binary_name }}"
+          echo "Archive Name: ${{ matrix.archive_name }}"
+        shell: bash
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
+        shell: bash
 
       - name: Build
-        id: build-release
-        run: cargo build --release
+        run: cargo build --release --target ${{ matrix.target }}
+        shell: bash
 
-      - name: Zip release
-        id: zip-release
-        run: zip -j build.zip target/release/codeinput
+      - name: Prepare archive
+        shell: bash
+        run: |
+          BINARY_PATH="target/${{ matrix.target }}/${{ matrix.binary_path_suffix }}/${{ matrix.binary_name }}"
+          echo "Binary path is $BINARY_PATH"
+          if [ ! -f "$BINARY_PATH" ]; then
+            echo "Binary not found at $BINARY_PATH"
+            ls -R target
+            exit 1
+          fi
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" || "${{ matrix.os }}" == "macos-latest" ]]; then
+            chmod +x "$BINARY_PATH"
+          fi
+          
+          # Create a staging directory
+          STAGING_DIR="staging"
+          mkdir -p "$STAGING_DIR"
+          
+          # Copy the binary to the staging directory
+          cp "$BINARY_PATH" "$STAGING_DIR/"
+          
+          # Zip the contents of the staging directory
+          cd "$STAGING_DIR"
+          zip ../${{ matrix.archive_name }} ${{ matrix.binary_name }}
+          cd ..
+          echo "Created archive ${{ matrix.archive_name }}"
 
-      - name: Artifact Production
-        id: create-artifact
+
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build
-          path: build.zip
+          name: build-${{ matrix.os }} # e.g., build-ubuntu-latest
+          path: ${{ matrix.archive_name }}
 
-      - name: Remove Same Release
-        uses: omarabid-forks/action-rollback@stable
-        continue-on-error: true
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build # Ensures this job runs after all build jobs in the matrix are complete
+    permissions:
+      contents: write # Required to create releases and upload assets
+      actions: read # Required to download artifacts
+    
+    steps:
+      - name: Checkout Source (for version info)
+        uses: actions/checkout@v2
+
+      - name: Set version variables from tag
+        id: tag_vars
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          # Assuming tag is vA.B.C, package_version becomes A.B.C
+          PACKAGE_VERSION="${TAG_NAME#v}"
+          echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_OUTPUT
+          # We can try to get package_name from Cargo.toml if needed, or define it statically
+          # For simplicity, let's try Cargo.toml first
+          PACKAGE_NAME=$(sed -En 's/name[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1)
+          echo "package_name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Output version variables (for debugging)
+        run: |
+          echo "Package Name: ${{ steps.tag_vars.outputs.package_name }}"
+          echo "Package Version: ${{ steps.tag_vars.outputs.package_version }}"
+        shell: bash
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
         with:
-          tag: ${{ steps.vars.outputs.package_version }}
+          path: release-artifacts # Artifacts will be in release-artifacts/build-ubuntu-latest/*, release-artifacts/build-macos-latest/* etc.
+
+      - name: List downloaded artifacts (for debugging)
+        run: ls -R release-artifacts
+        shell: bash
+
+      - name: Remove Same Release (if exists)
+        uses: omarabid-forks/action-rollback@stable
+        continue-on-error: true # Important if the release doesn't exist yet
+        with:
+          tag: ${{ github.ref_name }} # Use the tag that triggered the workflow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
-        id: create-release
+        id: create_release
         uses: actions/create-release@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{steps.vars.outputs.package_version}}
-          release_name: Version ${{steps.vars.outputs.package_version}}
-          body: ${{steps.vars.outputs.package_name}} - ${{steps.vars.outputs.package_version}}
-          draft: false
-          prerelease: false
-
-      - name: Upload Artifact
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: build.zip
-          asset_name: build.zip
-          asset_content_type: application/zip
+          tag_name: ${{ github.ref_name }}
+          release_name: Version ${{ steps.tag_vars.outputs.package_version }}
+          body: |
+            Release of version ${{ steps.tag_vars.outputs.package_version }} for ${{ steps.tag_vars.outputs.package_name }}.
+            Includes builds for Windows, macOS (x86_64), and Linux (x86_64).
+          draft: false
+          prerelease: false
 
-      - uses: omarabid-forks/purge-artifacts@v1
+      - name: Upload Release Assets
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPLOAD_URL: ${{ steps.create_release.outputs.upload_url }}
+        run: |
+          echo "Listing files to upload:"
+          find release-artifacts -type f -print0 | while IFS= read -r -d $'\0' file; do
+            ARCHIVE_NAME=$(basename "$file")
+            echo "Uploading $file as $ARCHIVE_NAME"
+            gh release upload "${{ github.ref_name }}" "$file" --clobber
+          done
+          echo "Finished uploading assets."
+
+      - name: Purge All Artifacts (optional, cleans up build artifacts after release)
+        if: always() # Run this step even if previous steps fail
+        uses: omarabid-forks/purge-artifacts@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          expire-in: 0
+          expire-in: 0 # Immediately purge
+          # Optional: specify by name if you only want to purge the 'build-*' artifacts
+          # name: build-* 
+```
