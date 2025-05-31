@@ -1,0 +1,31 @@
+name: Benchmarks
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run_benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Run benchmarks
+        run: cargo bench
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: target/criterion/ # Capture all reports under target/criterion
+          if-no-files-found: warn # Optional: warn if no reports are found
+          retention-days: 7 # Optional: keep artifacts for 7 days
