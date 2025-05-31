@@ -4,7 +4,7 @@ use std::path::Path;
 use super::types::{CodeownersEntry, Owner, OwnerType, Tag};
 
 /// Parse CODEOWNERS
-pub fn parse_codeowners(source_path: &Path) -> Result<Vec<CodeownersEntry>> {
+pub(crate) fn parse_codeowners(source_path: &Path) -> Result<Vec<CodeownersEntry>> {
     let content = std::fs::read_to_string(source_path)?;
 
     content
@@ -15,7 +15,7 @@ pub fn parse_codeowners(source_path: &Path) -> Result<Vec<CodeownersEntry>> {
 }
 
 /// Parse a line of CODEOWNERS
-pub(crate) fn parse_line(
+pub fn parse_line(
     line: &str, line_num: usize, source_path: &Path,
 ) -> Result<Option<CodeownersEntry>> {
     // Trim the line and check for empty or comment lines
@@ -77,7 +77,7 @@ pub(crate) fn parse_line(
 }
 
 /// Parse an owner string into an Owner struct
-fn parse_owner(owner_str: &str) -> Result<Owner> {
+pub(crate) fn parse_owner(owner_str: &str) -> Result<Owner> {
     let identifier = owner_str.to_string();
     let owner_type = if identifier.eq_ignore_ascii_case("NOOWNER") {
         OwnerType::Unowned

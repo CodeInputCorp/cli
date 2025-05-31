@@ -1,10 +1,10 @@
-pub mod cache;
-pub mod commands;
-pub mod common;
-pub mod parse;
+pub(crate) mod cache;
+pub(crate) mod commands;
+pub(crate) mod common;
+pub(crate) mod parse;
 pub mod parser;
-pub mod resolver;
-pub mod types;
+pub(crate) mod resolver;
+pub(crate) mod types;
 
 use crate::utils::error::Result;
 

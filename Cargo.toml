@@ -15,6 +15,11 @@ code input cli.
 name = "ci"
 path = "src/main.rs"
 
+[[bench]]
+name = "parser_bench"
+path = "src/benches/parser_bench.rs"
+harness = false
+
 [features]
 nightly = []
 termlog = ["slog-term"]
@@ -55,6 +60,7 @@ features = ["cargo", "derive"]
 assert_cmd = "2.0.17"
 predicates = "3.1.3"
 tempfile = "3.20"
+criterion = { version = "0.6.0", features = ["html_reports"] }
 
 [profile.dev]
 opt-level = 0

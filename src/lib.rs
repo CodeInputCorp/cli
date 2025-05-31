@@ -1,3 +1,3 @@
 pub(crate) mod cli;
-pub(crate) mod core;
+pub mod core;
 pub(crate) mod utils;
