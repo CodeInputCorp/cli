@@ -7,7 +7,32 @@ use super::types::{CacheEncoding, CodeownersEntry, OutputFormat};
 use crate::utils::app_config::AppConfig;
 use crate::utils::error::{Error, Result};
 
-/// Show the configuration file
+// Module-level comments
+//! # CLI Command Implementations
+//!
+//! This module provides the core logic for the command-line interface (CLI)
+//! commands offered by the application. Each public function in this module typically
+//! corresponds to a subcommand that can be invoked by the user.
+//!
+//! The functions handle tasks such as:
+//! - Displaying application configuration.
+//! - Parsing `CODEOWNERS` files and building a cache.
+//! - Listing files based on ownership and tag criteria.
+//! - Listing owners and their associated files.
+//! - Listing tags and their associated files.
+//!
+//! These command handlers often utilize functionalities from other `core` submodules
+//! like `cache`, `common`, and `parse`, as well as utilities from the `utils` module.
+
+/// Displays the current application configuration.
+///
+/// This function fetches the active `AppConfig` instance, which includes settings
+/// merged from default values, configuration files, and command-line arguments,
+/// and prints it to the console in a human-readable format.
+///
+/// # Returns
+///
+/// Returns `Ok(())` on success, or an `Error` if the configuration cannot be fetched.
 pub fn config() -> Result<()> {
     let config = AppConfig::fetch()?;
     println!("{:#?}", config);
@@ -15,7 +40,28 @@ pub fn config() -> Result<()> {
     Ok(())
 }
 
-/// Preprocess CODEOWNERS files and build ownership map
+/// Parses `CODEOWNERS` files within a specified path, builds an ownership cache, and stores it.
+///
+/// This command performs the following steps:
+/// 1. Determines the target cache file path (either from `cache_file` argument or `AppConfig`).
+/// 2. Finds all `CODEOWNERS` files in the given `path`.
+/// 3. Parses each `CODEOWNERS` file to extract ownership entries.
+/// 4. Finds all files within the `path` to be included in the cache.
+/// 5. Calculates a hash of the repository state for cache validation.
+/// 6. Builds the `CodeownersCache` using the parsed entries, file list, and hash.
+/// 7. Stores the newly built cache to the determined cache file path using the specified `encoding`.
+/// 8. Attempts to load the cache back to verify its integrity (primarily for testing).
+///
+/// # Arguments
+///
+/// * `path`: The root directory path to scan for `CODEOWNERS` files and other project files.
+/// * `cache_file`: An optional path to store the generated cache. If `None`, the path from `AppConfig` is used, relative to `path`.
+/// * `encoding`: The `CacheEncoding` format (e.g., `Bincode`, `Json`) to use for storing the cache.
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful parsing and cache creation, or an `Error` if any step fails
+/// (e.g., file I/O, parsing errors, cache storage).
 pub fn codeowners_parse(
     path: &std::path::Path, cache_file: Option<&std::path::Path>, encoding: CacheEncoding,
 ) -> Result<()> {
@@ -60,7 +106,36 @@ pub fn codeowners_parse(
     Ok(())
 }
 
-/// Find and list files with their owners based on filter criteria
+/// Lists files from the CODEOWNERS cache, applying filters and formatting the output.
+///
+/// This command performs the following actions:
+/// 1. Determines the repository path (defaults to current directory if `repo` is `None`).
+/// 2. Synchronizes the cache for the repository using `sync_cache`, loading or rebuilding it as needed.
+///    The `cache_file` argument can specify a custom cache location.
+/// 3. Filters the files from the cache based on the provided criteria:
+///    - `owners`: Comma-separated list of owner identifiers to filter by.
+///    - `tags`: Comma-separated list of tag names to filter by.
+///    - `unowned`: If `true`, only lists files with no owners.
+///    - `show_all`: If `true`, includes unowned/untagged files; otherwise, they are excluded unless `unowned` is also true.
+/// 4. Outputs the filtered list of files in the specified `format` (`Text`, `Json`, or `Bincode`).
+///    - `Text` format provides a human-readable table with truncated paths and owner/tag lists for better display.
+///    - `Json` format outputs a JSON array of the filtered file entries.
+///    - `Bincode` format outputs the raw Bincode-serialized data of the filtered file entries.
+///
+/// # Arguments
+///
+/// * `repo`: An optional path to the repository directory. Defaults to `"."`.
+/// * `tags`: An optional comma-separated string of tags to filter by.
+/// * `owners`: An optional comma-separated string of owner identifiers to filter by.
+/// * `unowned`: A boolean flag; if `true`, only unowned files are listed.
+/// * `show_all`: A boolean flag; if `true`, all files (including unowned/untagged) are considered, subject to other filters.
+/// * `format`: The `OutputFormat` for the output (e.g., `Text`, `Json`, `Bincode`).
+/// * `cache_file`: An optional path to the cache file. If `None`, the default cache path is used.
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful listing, or an `Error` if cache synchronization,
+/// filtering, or output formatting/writing fails.
 pub fn codeowners_list_files(
     repo: Option<&std::path::Path>, tags: Option<&str>, owners: Option<&str>, unowned: bool,
     show_all: bool, format: &OutputFormat, cache_file: Option<&std::path::Path>,
@@ -76,7 +151,7 @@ pub fn codeowners_list_files(
         .files
         .iter()
         .filter(|file| {
-            // Check if we should include this file based on filters
+            // Check if we should include this file based on owner filters
             let passes_owner_filter = match owners {
                 Some(owner_filter) => {
                     let owner_patterns: Vec<&str> = owner_filter.split(',').collect();
@@ -86,9 +161,10 @@ pub fn codeowners_list_files(
                             .any(|pattern| owner.identifier.contains(pattern))
                     })
                 }
-                None => true,
+                None => true, // No owner filter means all files pass this check
             };
 
+            // Check if we should include this file based on tag filters
             let passes_tag_filter = match tags {
                 Some(tag_filter) => {
                     let tag_patterns: Vec<&str> = tag_filter.split(',').collect();
@@ -96,22 +172,25 @@ pub fn codeowners_list_files(
                         .iter()
                         .any(|tag| tag_patterns.iter().any(|pattern| tag.0.contains(pattern)))
                 }
-                None => true,
+                None => true, // No tag filter means all files pass this check
             };
 
+            // Check if we should include this file based on the unowned filter
             let passes_unowned_filter = if unowned {
-                file.owners.is_empty()
+                file.owners.is_empty() // Only include if file has no owners
             } else {
-                true
+                true // If not filtering for unowned, all files pass this check
             };
 
-            //  exclude unowned/untagged files unless show_all or unowned is specified
+            // Determine if the file meets basic ownership/tag requirements
+            // Exclude unowned/untagged files unless `show_all` or `unowned` is specified.
             let passes_ownership_requirement = if show_all || unowned {
-                true
+                true // If showing all or specifically unowned, it passes
             } else {
-                !file.owners.is_empty() || !file.tags.is_empty()
+                !file.owners.is_empty() || !file.tags.is_empty() // Otherwise, must have owners or tags
             };
 
+            // File is included if all filter conditions are met
             passes_owner_filter
                 && passes_tag_filter
                 && passes_unowned_filter
@@ -122,12 +201,12 @@ pub fn codeowners_list_files(
     // Output the filtered files in the requested format
     match format {
         OutputFormat::Text => {
-            // Set column widths that work better for most displays
-            let path_width = 45; // Max width for path display
-            let owner_width = 26; // More space for owners
-            let tag_width = 26; // More space for tags
+            // Define column widths for text output to enhance readability
+            let path_width = 45; // Max width for displaying file paths
+            let owner_width = 26; // Width for displaying owners
+            let tag_width = 26; // Width for displaying tags
 
-            // Print header
+            // Print table header
             println!(
                 "==============================================================================="
             );
@@ -144,35 +223,31 @@ pub fn codeowners_list_files(
                 "==============================================================================="
             );
 
-            // Print each file entry
+            // Print each filtered file's details
             for file in &filtered_files {
-                // Format the path - keep the filename but truncate the path if needed
+                // Format path for display: truncate if too long, prioritizing filename
                 let path_str = file.path.to_string_lossy();
                 let path_display = if path_str.len() > path_width {
-                    // Extract filename
                     let filename = file
                         .path
                         .file_name()
                         .map(|f| f.to_string_lossy().to_string())
                         .unwrap_or_default();
-
-                    // Calculate available space for parent path
-                    let available_space = path_width.saturating_sub(filename.len() + 4); // +4 for ".../"
-
-                    if available_space > 5 {
-                        // Show part of the parent path
-                        let parent_path = path_str.to_string();
-                        let start_pos = parent_path.len().saturating_sub(path_width - 3);
-                        format!("...{}", &parent_path[start_pos..])
-                    } else {
-                        // Just show the filename with ellipsis
+                    // Available space for the parent path part, considering ellipsis and separator
+                    let available_space = path_width.saturating_sub(filename.len() + 4); // ".../"
+                    if available_space > 5 { // Heuristic: show some parent path if space allows
+                        let parent_path_str = path_str.to_string();
+                        // Take the end of the parent path string
+                        let start_pos = parent_path_str.len().saturating_sub(path_width - 3); // -3 for "..."
+                        format!("...{}", &parent_path_str[start_pos..])
+                    } else { // Not enough space, just show ellipsis and filename
                         format!(".../{}", filename)
                     }
                 } else {
-                    path_str.to_string()
+                    path_str.to_string() // Path fits, show as is
                 };
 
-                // Format owners with more space
+                // Format owners list for display, truncate if too long
                 let owners_str = if file.owners.is_empty() {
                     "None".to_string()
                 } else {
@@ -182,14 +257,13 @@ pub fn codeowners_list_files(
                         .collect::<Vec<_>>()
                         .join(", ")
                 };
-
                 let owners_display = if owners_str.len() > owner_width {
                     format!("{}...", &owners_str[0..owner_width - 3])
                 } else {
                     owners_str
                 };
 
-                // Format tags with more space
+                // Format tags list for display, truncate if too long
                 let tags_str = if file.tags.is_empty() {
                     "None".to_string()
                 } else {
@@ -199,13 +273,13 @@ pub fn codeowners_list_files(
                         .collect::<Vec<_>>()
                         .join(", ")
                 };
-
                 let tags_display = if tags_str.len() > tag_width {
                     format!("{}...", &tags_str[0..tag_width - 3])
                 } else {
                     tags_str
                 };
 
+                // Print the formatted row
                 println!(
                     " {:<path_width$} {:<owner_width$} {:<tag_width$}",
                     path_display,
@@ -216,6 +290,7 @@ pub fn codeowners_list_files(
                     tag_width = tag_width
                 );
             }
+            // Print table footer with total count
             println!(
                 "==============================================================================="
             );
@@ -225,14 +300,15 @@ pub fn codeowners_list_files(
             );
         }
         OutputFormat::Json => {
+            // Serialize the filtered files list to a pretty JSON string and print
             println!("{}", serde_json::to_string_pretty(&filtered_files).unwrap());
         }
         OutputFormat::Bincode => {
+            // Serialize the filtered files list to Bincode format
             let encoded =
                 bincode::serde::encode_to_vec(&filtered_files, bincode::config::standard())
                     .map_err(|e| Error::new(&format!("Serialization error: {}", e)))?;
-
-            // Write raw binary bytes to stdout
+            // Write the raw binary bytes to standard output
             io::stdout()
                 .write_all(&encoded)
                 .map_err(|e| Error::new(&format!("IO error: {}", e)))?;
@@ -242,7 +318,27 @@ pub fn codeowners_list_files(
     Ok(())
 }
 
-/// Display aggregated owner statistics and associations
+/// Lists owners found in the CODEOWNERS cache along with statistics and associated files.
+///
+/// This command performs the following:
+/// 1. Determines the repository path (defaults to current directory if `repo` is `None`).
+/// 2. Synchronizes the cache for the repository using `sync_cache`.
+/// 3. Processes the `owners_map` from the cache, which maps owners to the files they own.
+/// 4. Outputs the owner information in the specified `format` (`Text`, `Json`, or `Bincode`).
+///    - `Text` format displays a table with owner identifier, type, file count, and a sample of filenames. Owners are sorted by the number of files they own (descending).
+///    - `Json` format outputs a JSON array where each object represents an owner and includes their identifier, type, file count, and a full list of associated file paths.
+///    - `Bincode` format outputs the raw Bincode-serialized data of the `owners_map`.
+///
+/// # Arguments
+///
+/// * `repo`: An optional path to the repository directory. Defaults to `"."`.
+/// * `format`: The `OutputFormat` for the output (e.g., `Text`, `Json`, `Bincode`).
+/// * `cache_file`: An optional path to the cache file. If `None`, the default cache path is used.
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful listing, or an `Error` if cache synchronization,
+/// processing, or output formatting/writing fails.
 pub fn codeowners_list_owners(
     repo: Option<&std::path::Path>, format: &OutputFormat, cache_file: Option<&std::path::Path>,
 ) -> Result<()> {
@@ -371,7 +467,27 @@ pub fn codeowners_list_owners(
     Ok(())
 }
 
-/// Audit and analyze tag usage across CODEOWNERS files
+/// Lists tags found in the CODEOWNERS cache along with statistics and associated files.
+///
+/// This command performs the following:
+/// 1. Determines the repository path (defaults to current directory if `repo` is `None`).
+/// 2. Synchronizes the cache for the repository using `sync_cache`.
+/// 3. Processes the `tags_map` from the cache, which maps tags to the files they are associated with.
+/// 4. Outputs the tag information in the specified `format` (`Text`, `Json`, or `Bincode`).
+///    - `Text` format displays a table with tag name, file count, and a sample of filenames. Tags are sorted by the number of files they are associated with (descending).
+///    - `Json` format outputs a JSON array where each object represents a tag and includes its name, file count, and a full list of associated file paths.
+///    - `Bincode` format outputs the raw Bincode-serialized data of the `tags_map`.
+///
+/// # Arguments
+///
+/// * `repo`: An optional path to the repository directory. Defaults to `"."`.
+/// * `format`: The `OutputFormat` for the output (e.g., `Text`, `Json`, `Bincode`).
+/// * `cache_file`: An optional path to the cache file. If `None`, the default cache path is used.
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful listing, or an `Error` if cache synchronization,
+/// processing, or output formatting/writing fails.
 pub fn codeowners_list_tags(
     repo: Option<&std::path::Path>, format: &OutputFormat, cache_file: Option<&std::path::Path>,
 ) -> Result<()> {

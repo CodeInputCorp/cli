@@ -5,6 +5,21 @@ use clap_complete::{
 };
 use std::path::PathBuf;
 
+// Module-level comments
+//! # Command-Line Interface Module
+//!
+//! This module defines the command-line interface (CLI) for the application.
+//! It uses the `clap` crate to parse arguments and subcommands, and then
+//! dispatches to the appropriate handlers in the `core::commands` module.
+//!
+//! The main components are:
+//! - `Cli`: The top-level struct representing the CLI arguments.
+//! - `Commands`: An enum defining the main subcommands (e.g., `codeowners`, `completion`, `config`).
+//! - `CodeownersSubcommand`: An enum for subcommands related to CODEOWNERS file management.
+//! - `CompletionSubcommand`: An enum for generating shell completion scripts.
+//! - `cli_match()`: The main function that parses CLI input and executes the matched command.
+//! - `codeowners()`: A helper function to dispatch `CodeownersSubcommand` variants.
+
 use crate::core::{
     commands,
     types::{CacheEncoding, OutputFormat},
@@ -23,17 +38,23 @@ use crate::utils::types::LogLevel;
 )]
 //TODO: #[clap(setting = AppSettings::SubcommandRequired)]
 //TODO: #[clap(global_setting(AppSettings::DeriveDisplayOrder))]
+/// Represents the command-line interface arguments for the application.
+///
+/// This struct is parsed by `clap` to define the available commands, options, and flags.
 pub struct Cli {
-    /// Set a custom config file
+    /// Specifies a custom configuration file path.
+    /// If not provided, the application will look for a default configuration file.
     /// TODO: parse(from_os_str)
     #[arg(short, long, value_name = "FILE")]
     pub config: Option<PathBuf>,
 
-    /// Set a custom config file
+    /// Enables or disables debug mode.
+    /// This can affect logging verbosity and other debugging features.
     #[arg(name = "debug", short, long = "debug", value_name = "DEBUG")]
     pub debug: Option<bool>,
 
-    /// Set Log Level
+    /// Sets the logging level for the application.
+    /// Valid options are typically defined in `LogLevel` enum (e.g., "error", "warn", "info", "debug", "trace").
     #[arg(
         name = "log_level",
         short,
@@ -42,31 +63,47 @@ pub struct Cli {
     )]
     pub log_level: Option<LogLevel>,
 
-    /// Subcommands
+    /// The subcommand to execute.
+    /// This field holds one of the variants of the `Commands` enum.
     #[clap(subcommand)]
     command: Commands,
 }
 
+/// Defines the main subcommands available in the CLI.
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Subcommands for managing and analyzing CODEOWNERS files.
+    ///
+    /// This command group provides tools for parsing, validating, and querying
+    /// information from CODEOWNERS files.
     #[clap(
         name = "codeowners",
         about = "Manage and analyze CODEOWNERS files",
         long_about = "Tools for parsing, validating and querying CODEOWNERS files"
     )]
     Codeowners {
+        /// The specific `CodeownersSubcommand` to execute.
         #[clap(subcommand)]
         subcommand: CodeownersSubcommand,
     },
+    /// Subcommands for generating shell completion scripts.
+    ///
+    /// These commands allow users to generate autocompletion scripts for
+    /// common shells like Bash, Zsh, and Fish, improving the usability of the CLI.
     #[clap(
         name = "completion",
         about = "Generate completion scripts",
         long_about = None,
         )]
     Completion {
+        /// The specific `CompletionSubcommand` (shell type) for which to generate the script.
         #[clap(subcommand)]
         subcommand: CompletionSubcommand,
     },
+    /// Displays the current application configuration.
+    ///
+    /// This command prints the active configuration, which is a result of merging
+    /// default settings, configuration file values, and command-line arguments.
     #[clap(
         name = "config",
         about = "Show Configuration",
@@ -75,106 +112,142 @@ enum Commands {
     Config,
 }
 
+/// Defines subcommands for shell completion script generation.
 #[derive(Subcommand, PartialEq, Debug)]
 enum CompletionSubcommand {
+    /// Generates the autocompletion script for Bash.
     #[clap(about = "generate the autocompletion script for bash")]
     Bash,
+    /// Generates the autocompletion script for Zsh.
     #[clap(about = "generate the autocompletion script for zsh")]
     Zsh,
+    /// Generates the autocompletion script for Fish.
     #[clap(about = "generate the autocompletion script for fish")]
     Fish,
 }
 
+/// Defines subcommands related to CODEOWNERS file management.
 #[derive(Subcommand, PartialEq, Debug)]
 enum CodeownersSubcommand {
+    /// Parses CODEOWNERS files and builds an ownership map.
+    ///
+    /// This command preprocesses CODEOWNERS files found within the specified path,
+    /// resolves ownership rules, and creates a cache for faster lookups by other commands.
     #[clap(
         name = "parse",
         about = "Preprocess CODEOWNERS files and build ownership map"
     )]
     Parse {
-        /// Directory path to analyze (default: current directory)
+        /// The directory path to analyze for CODEOWNERS files. Defaults to the current directory.
         #[arg(default_value = ".")]
         path: PathBuf,
 
-        /// Custom cache file location
+        /// Specifies a custom location for the cache file. Defaults to `.codeowners.cache`.
         #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
         cache_file: Option<PathBuf>,
 
-        /// Output format: json|bincode
+        /// The format for storing the cache: `json` or `bincode`. Defaults to `bincode`.
         #[arg(long, value_name = "FORMAT", default_value = "bincode", value_parser = parse_cache_encoding)]
         format: CacheEncoding,
     },
 
+    /// Finds and lists files along with their owners based on specified filter criteria.
+    ///
+    /// This command queries the ownership information (potentially from a cache)
+    /// to list files and their associated owners, allowing filtering by tags, owners,
+    /// or unowned status.
     #[clap(
         name = "list-files",
         about = "Find and list files with their owners based on filter criteria"
     )]
     ListFiles {
-        /// Directory path to analyze (default: current directory)
+        /// The directory path to analyze. Defaults to the current directory.
         #[arg(default_value = ".")]
         path: Option<PathBuf>,
 
-        /// Only show files with specified tags
+        /// Filters the list to show only files associated with the specified tags (comma-separated).
         #[arg(long, value_name = "LIST")]
         tags: Option<String>,
 
-        /// Only show files owned by these owners
+        /// Filters the list to show only files owned by the specified owners (comma-separated).
         #[arg(long, value_name = "LIST")]
         owners: Option<String>,
 
-        /// Show only unowned files
+        /// If set, only lists files that have no owners defined in CODEOWNERS.
         #[arg(long)]
         unowned: bool,
 
-        /// Show all files including unowned/untagged
+        /// If set, shows all files, including those that are unowned or untagged.
         #[arg(long)]
         show_all: bool,
 
-        /// Output format: text|json|bincode
+        /// The output format for the list: `text`, `json`, or `bincode`. Defaults to `text`.
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
 
-        /// Custom cache file location
+        /// Specifies a custom location for the cache file. Defaults to `.codeowners.cache`.
         #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
         cache_file: Option<PathBuf>,
     },
 
+    /// Displays aggregated statistics and associations for owners.
+    ///
+    /// This command provides insights into owner activity, such as the number of files
+    /// they own or other relevant metrics.
     #[clap(
         name = "list-owners",
         about = "Display aggregated owner statistics and associations"
     )]
     ListOwners {
-        /// Directory path to analyze (default: current directory)
+        /// The directory path to analyze. Defaults to the current directory.
         #[arg(default_value = ".")]
         path: Option<PathBuf>,
 
-        /// Output format: text|json|bincode
+        /// The output format for the statistics: `text`, `json`, or `bincode`. Defaults to `text`.
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
 
-        /// Custom cache file location
+        /// Specifies a custom location for the cache file. Defaults to `.codeowners.cache`.
         #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
         cache_file: Option<PathBuf>,
     },
+    /// Audits and analyzes the usage of tags across CODEOWNERS files.
+    ///
+    /// This command helps in understanding how tags are defined and used,
+    /// potentially identifying unused or inconsistently applied tags.
     #[clap(
         name = "list-tags",
         about = "Audit and analyze tag usage across CODEOWNERS files"
     )]
     ListTags {
-        /// Directory path to analyze (default: current directory)
+        /// The directory path to analyze. Defaults to the current directory.
         #[arg(default_value = ".")]
         path: Option<PathBuf>,
 
-        /// Output format: text|json|bincode
+        /// The output format for the tag analysis: `text`, `json`, or `bincode`. Defaults to `text`.
         #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
         format: OutputFormat,
 
-        /// Custom cache file location
+        /// Specifies a custom location for the cache file. Defaults to `.codeowners.cache`.
         #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
         cache_file: Option<PathBuf>,
     },
 }
 
+/// Parses command-line arguments, merges configurations, and executes the appropriate command.
+///
+/// This is the main entry point for the CLI logic. It performs the following steps:
+/// 1. Parses the raw command-line arguments using `Cli::parse()`.
+/// 2. Merges any configuration specified via the `--config` option with `AppConfig`.
+/// 3. Retrieves the `clap::Command` instance and its matches.
+/// 4. Merges command-line arguments (which might override config file settings) into `AppConfig`.
+/// 5. Matches the parsed subcommand and dispatches to the corresponding handler function
+///    (e.g., `codeowners()` for `Codeowners` subcommands, or generates shell completions).
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful execution, or an `Err` variant from `crate::utils::error::Result`
+/// if any step fails (e.g., config merging, argument parsing, command execution).
 pub fn cli_match() -> Result<()> {
     // Parse the command line arguments
     let cli = Cli::parse();
@@ -210,7 +283,19 @@ pub fn cli_match() -> Result<()> {
     Ok(())
 }
 
-/// Handle codeowners subcommands
+/// Handles the dispatch of `CodeownersSubcommand` variants to their respective command functions.
+///
+/// This function takes a reference to a `CodeownersSubcommand` and calls the appropriate
+/// function from `crate::core::commands` based on the variant.
+///
+/// # Arguments
+///
+/// * `subcommand`: A reference to the `CodeownersSubcommand` enum variant to be executed.
+///
+/// # Returns
+///
+/// Returns `Ok(())` if the subcommand executes successfully, or an `Err` variant
+/// from `crate::utils::error::Result` if the command handler encounters an error.
 pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
     match subcommand {
         CodeownersSubcommand::Parse {
@@ -248,6 +333,21 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
     }
 }
 
+/// Parses a string slice into an `OutputFormat` enum.
+///
+/// This function is used by `clap` as a value parser for arguments
+/// that specify an output format. It converts common string representations
+/// (case-insensitive "text", "json", "bincode") into their corresponding
+/// `OutputFormat` variants.
+///
+/// # Arguments
+///
+/// * `s`: The string slice to parse.
+///
+/// # Returns
+///
+/// Returns `Ok(OutputFormat)` if the string is a valid format, otherwise
+/// returns `Err(String)` with an error message.
 fn parse_output_format(s: &str) -> std::result::Result<OutputFormat, String> {
     match s.to_lowercase().as_str() {
         "text" => Ok(OutputFormat::Text),
@@ -257,6 +357,21 @@ fn parse_output_format(s: &str) -> std::result::Result<OutputFormat, String> {
     }
 }
 
+/// Parses a string slice into a `CacheEncoding` enum.
+///
+/// This function is used by `clap` as a value parser for arguments
+/// that specify a cache encoding format. It converts common string representations
+/// (case-insensitive "bincode", "json") into their corresponding
+/// `CacheEncoding` variants.
+///
+/// # Arguments
+///
+/// * `s`: The string slice to parse.
+///
+/// # Returns
+///
+/// Returns `Ok(CacheEncoding)` if the string is a valid encoding, otherwise
+/// returns `Err(String)` with an error message.
 fn parse_cache_encoding(s: &str) -> std::result::Result<CacheEncoding, String> {
     match s.to_lowercase().as_str() {
         "bincode" => Ok(CacheEncoding::Bincode),

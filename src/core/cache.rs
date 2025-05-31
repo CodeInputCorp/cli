@@ -8,7 +8,37 @@ use super::parse::parse_repo;
 use super::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
 use crate::utils::error::{Error, Result};
 
-/// Create a cache from parsed CODEOWNERS entries and files
+// Module-level comments
+//! # CODEOWNERS Cache Management
+//!
+//! This module provides functionalities for creating, storing, loading, and synchronizing
+//! a cache of CODEOWNERS information. The cache helps in speeding up operations
+//! like listing file owners or tags by avoiding repeated parsing of CODEOWNERS files.
+//!
+//! The main operations include:
+//! - Building a new cache from parsed `CodeownersEntry` items and file lists.
+//! - Storing a `CodeownersCache` object to a file, with support for different encodings.
+//! - Loading a `CodeownersCache` from a file, automatically detecting the encoding.
+//! - Synchronizing the cache, which involves checking if an existing cache is valid
+//!   (e.g., by comparing a repository hash) and rebuilding it if necessary.
+
+/// Creates a `CodeownersCache` from parsed CODEOWNERS entries, a list of files, and a repository hash.
+///
+/// This function processes each file to determine its owners and tags based on the provided
+/// `CodeownersEntry` list. It also aggregates information about all unique owners and tags
+/// found in the entries.
+///
+/// # Arguments
+///
+/// * `entries`: A vector of `CodeownersEntry` structs, representing the parsed rules from CODEOWNERS files.
+/// * `files`: A vector of `PathBuf` pointing to the files in the repository that should be included in the cache.
+/// * `hash`: A 32-byte array representing a hash of the repository state (e.g., commit hash or file content hash)
+///           to validate cache freshness.
+///
+/// # Returns
+///
+/// Returns a `Result` containing the newly created `CodeownersCache` on success,
+/// or an `Error` if any part of the cache building process fails (e.g., path processing).
 pub fn build_cache(
     entries: Vec<CodeownersEntry>, files: Vec<PathBuf>, hash: [u8; 32],
 ) -> Result<CodeownersCache> {
@@ -61,7 +91,22 @@ pub fn build_cache(
     })
 }
 
-/// Store Cache
+/// Stores a `CodeownersCache` object to a specified file path using the given encoding.
+///
+/// This function serializes the `CodeownersCache` into either Bincode or JSON format
+/// and writes it to the file system. It also ensures that the parent directory for the
+/// cache file exists, creating it if necessary.
+///
+/// # Arguments
+///
+/// * `cache`: A reference to the `CodeownersCache` to be stored.
+/// * `path`: The `Path` where the cache file should be saved.
+/// * `encoding`: The `CacheEncoding` to use (e.g., `Bincode` or `Json`).
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful storage, or an `Error` if directory creation,
+/// file creation, serialization, or writing fails.
 pub fn store_cache(cache: &CodeownersCache, path: &Path, encoding: CacheEncoding) -> Result<()> {
     let parent = path
         .parent()
@@ -87,7 +132,23 @@ pub fn store_cache(cache: &CodeownersCache, path: &Path, encoding: CacheEncoding
     Ok(())
 }
 
-/// Load Cache from file, automatically detecting whether it's JSON or Bincode format
+/// Loads a `CodeownersCache` from a specified file path, automatically detecting the encoding.
+///
+/// This function attempts to determine if the cache file is in JSON or Bincode format.
+/// It first checks if the file starts with `'{'`, which suggests JSON. If so, it tries
+/// to deserialize it as JSON. Otherwise, it attempts Bincode deserialization. If Bincode
+/// fails and it wasn't identified as JSON initially, it makes a fallback attempt to
+/// deserialize as JSON.
+///
+/// # Arguments
+///
+/// * `path`: The `Path` to the cache file to be loaded.
+///
+/// # Returns
+///
+/// Returns a `Result` containing the loaded `CodeownersCache` on success,
+/// or an `Error` if the file cannot be opened, read, or deserialized in any
+/// supported format.
 pub fn load_cache(path: &Path) -> Result<CodeownersCache> {
     // Read the first byte to make an educated guess about the format
     let mut file = std::fs::File::open(path)
@@ -132,6 +193,25 @@ pub fn load_cache(path: &Path) -> Result<CodeownersCache> {
     }
 }
 
+/// Synchronizes the CODEOWNERS cache for a given repository.
+///
+/// This function checks if a valid cache file exists and matches the current state of the
+/// repository (verified by a hash). If the cache is missing, outdated, or invalid,
+/// it triggers a re-parse of the repository's CODEOWNERS files and rebuilds the cache.
+///
+/// The location of the cache file can be specified directly or retrieved from the
+/// application configuration.
+///
+/// # Arguments
+///
+/// * `repo`: A `Path` to the root of the repository to be analyzed.
+/// * `cache_file`: An optional `Path` to the cache file. If `None`, the path is
+///                 determined from `AppConfig`.
+///
+/// # Returns
+///
+/// Returns a `Result` containing the `CodeownersCache` (either loaded or newly built)
+/// on success, or an `Error` if loading, parsing, or cache building fails.
 pub fn sync_cache(
     repo: &std::path::Path, cache_file: Option<&std::path::Path>,
 ) -> Result<CodeownersCache> {
