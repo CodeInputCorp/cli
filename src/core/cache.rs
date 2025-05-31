@@ -1,10 +1,10 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use super::common::{
-    collect_owners, collect_tags, find_owners_for_file, find_tags_for_file, get_repo_hash,
-};
+use super::common::{collect_owners, collect_tags, get_repo_hash};
+use super::owner_resolver::find_owners_for_file;
 use super::parse::parse_repo;
+use super::tag_resolver::find_tags_for_file;
 use super::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
 use crate::utils::error::{Error, Result};
 
