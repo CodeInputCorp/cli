@@ -2,6 +2,8 @@ pub mod cache;
 pub mod commands;
 pub mod common;
 pub mod parse;
+pub mod parser;
+pub mod resolver;
 pub mod types;
 
 use crate::utils::error::Result;

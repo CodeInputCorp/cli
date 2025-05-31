@@ -16,6 +16,8 @@ pub fn build_cache(
     let mut owners_map = std::collections::HashMap::new();
     let mut tags_map = std::collections::HashMap::new();
 
+    println!("start building cache");
+
     // Process each file to find owners and tags
     for file_path in files {
         let owners = find_owners_for_file(&file_path, &entries)?;
@@ -27,8 +29,11 @@ pub fn build_cache(
             owners: owners.clone(),
             tags: tags.clone(),
         };
+        dbg!(&file_entry);
         file_entries.push(file_entry);
     }
+
+    println!("file entry done");
 
     // Process each owner
     let owners = collect_owners(&entries);
@@ -41,6 +46,8 @@ pub fn build_cache(
         }
     });
 
+    println!("owner done");
+
     // Process each tag
     let tags = collect_tags(&entries);
     tags.iter().for_each(|tag| {
@@ -51,6 +58,8 @@ pub fn build_cache(
             }
         }
     });
+
+    println!("tag done");
 
     Ok(CodeownersCache {
         hash,
