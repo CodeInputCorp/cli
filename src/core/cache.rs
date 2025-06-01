@@ -1,37 +1,49 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use rayon::prelude::*;
+use rayon::slice::ParallelSlice;
+
 use super::common::{collect_owners, collect_tags, get_repo_hash};
 use super::owner_resolver::find_owners_for_file;
 use super::parse::parse_repo;
 use super::tag_resolver::find_tags_for_file;
 use super::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
+use crate::core::owner_resolver::find_owners_and_tags_for_file;
 use crate::utils::error::{Error, Result};
 
 /// Create a cache from parsed CODEOWNERS entries and files
 pub fn build_cache(
     entries: Vec<CodeownersEntry>, files: Vec<PathBuf>, hash: [u8; 32],
 ) -> Result<CodeownersCache> {
-    let mut file_entries = Vec::new();
     let mut owners_map = std::collections::HashMap::new();
     let mut tags_map = std::collections::HashMap::new();
 
     println!("start building cache");
 
     // Process each file to find owners and tags
-    for file_path in files {
-        let owners = find_owners_for_file(&file_path, &entries)?;
-        let tags = find_tags_for_file(&file_path, &entries)?;
+    let file_entries: Vec<FileEntry> = files
+        .par_chunks(10)
+        .flat_map(|chunk| {
+            chunk
+                .iter()
+                .map(|file_path| {
+                    println!("Processing file: {}", file_path.display());
 
-        // Build file entry
-        let file_entry = FileEntry {
-            path: file_path.clone(),
-            owners: owners.clone(),
-            tags: tags.clone(),
-        };
-        dbg!(&file_entry);
-        file_entries.push(file_entry);
-    }
+                    let (owners, tags) =
+                        find_owners_and_tags_for_file(file_path, &entries).unwrap();
+                    //let tags = find_tags_for_file(file_path, &entries).unwrap();
+
+                    // Build file entry
+                    FileEntry {
+                        path: file_path.clone(),
+                        owners: owners.clone(),
+                        tags: tags.clone(),
+                    }
+                })
+                .collect::<Vec<FileEntry>>()
+        })
+        .collect();
 
     println!("file entry done");
 

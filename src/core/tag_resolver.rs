@@ -31,8 +31,8 @@ pub fn find_tags_for_file(file_path: &Path, entries: &[CodeownersEntry]) -> Resu
         )
     })?;
 
-    let mut candidates = entries
-        .smart_iter(3)
+    let mut candidates: Vec<_> = entries
+        .iter()
         .filter_map(|entry| {
             let codeowners_dir = match entry.source_file.parent() {
                 Some(dir) => dir,
