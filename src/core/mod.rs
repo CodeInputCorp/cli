@@ -5,7 +5,7 @@ pub mod owner_resolver;
 pub(crate) mod parse;
 pub mod parser;
 pub mod tag_resolver;
-pub(crate) mod types;
+pub mod types;
 
 use crate::utils::error::Result;
 
