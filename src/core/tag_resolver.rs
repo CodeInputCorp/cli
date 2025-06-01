@@ -1,15 +1,24 @@
 use crate::utils::error::{Error, Result};
 use ignore::overrides::{Override, OverrideBuilder};
+
 use std::path::{Path, PathBuf};
 
-use super::types::{CodeownersEntry, FileEntry, Tag};
+use super::{
+    smart_iter::SmartIter,
+    types::{CodeownersEntry, FileEntry, Tag},
+};
 
 /// Find all files tagged with a specific tag
 pub fn find_files_for_tag(files: &[FileEntry], tag: &Tag) -> Vec<PathBuf> {
     files
         .iter()
-        .filter(|file_entry| file_entry.tags.contains(tag))
-        .map(|file_entry| file_entry.path.clone())
+        .filter_map(|file_entry| {
+            if file_entry.tags.contains(tag) {
+                Some(file_entry.path.clone())
+            } else {
+                None
+            }
+        })
         .collect()
 }
 
@@ -22,64 +31,63 @@ pub fn find_tags_for_file(file_path: &Path, entries: &[CodeownersEntry]) -> Resu
         )
     })?;
 
-    let mut candidates = Vec::new();
-
-    for entry in entries {
-        let codeowners_dir = match entry.source_file.parent() {
-            Some(dir) => dir,
-            None => {
-                eprintln!(
-                    "CODEOWNERS entry has no parent directory: {}",
-                    entry.source_file.display()
-                );
-                continue;
-            }
-        };
-
-        // Check if the CODEOWNERS directory is an ancestor of the target directory
-        if !target_dir.starts_with(codeowners_dir) {
-            continue;
-        }
-
-        // Calculate the depth as the number of components in the relative path from codeowners_dir to target_dir
-        let rel_path = match target_dir.strip_prefix(codeowners_dir) {
-            Ok(p) => p,
-            Err(_) => continue, // Should not happen due to starts_with check
-        };
-        let depth = rel_path.components().count();
-
-        // Check if the pattern matches the target file
-        let matches = {
-            let mut builder = OverrideBuilder::new(codeowners_dir);
-            if let Err(e) = builder.add(&entry.pattern) {
-                eprintln!(
-                    "Invalid pattern '{}' in {}: {}",
-                    entry.pattern,
-                    entry.source_file.display(),
-                    e
-                );
-                continue;
-            }
-            let over: Override = match builder.build() {
-                Ok(o) => o,
-                Err(e) => {
+    let mut candidates = entries
+        .smart_iter(3)
+        .filter_map(|entry| {
+            let codeowners_dir = match entry.source_file.parent() {
+                Some(dir) => dir,
+                None => {
                     eprintln!(
-                        "Failed to build override for pattern '{}': {}",
-                        entry.pattern, e
+                        "CODEOWNERS entry has no parent directory: {}",
+                        entry.source_file.display()
                     );
-                    continue;
+                    return None;
                 }
             };
-            over.matched(file_path, false).is_whitelist()
-        };
 
-        if matches {
-            candidates.push((entry, depth));
-        }
-    }
+            // Check if the CODEOWNERS directory is an ancestor of the target directory
+            if !target_dir.starts_with(codeowners_dir) {
+                return None;
+            }
+
+            // Calculate the depth as the number of components in the relative path from codeowners_dir to target_dir
+            let rel_path = match target_dir.strip_prefix(codeowners_dir) {
+                Ok(p) => p,
+                Err(_) => return None, // Should not happen due to starts_with check
+            };
+            let depth = rel_path.components().count();
+
+            // Check if the pattern matches the target file
+            let matches = {
+                let mut builder = OverrideBuilder::new(codeowners_dir);
+                if let Err(e) = builder.add(&entry.pattern) {
+                    eprintln!(
+                        "Invalid pattern '{}' in {}: {}",
+                        entry.pattern,
+                        entry.source_file.display(),
+                        e
+                    );
+                    return None;
+                }
+                let over: Override = match builder.build() {
+                    Ok(o) => o,
+                    Err(e) => {
+                        eprintln!(
+                            "Failed to build override for pattern '{}': {}",
+                            entry.pattern, e
+                        );
+                        return None;
+                    }
+                };
+                over.matched(file_path, false).is_whitelist()
+            };
+
+            if matches { Some((entry, depth)) } else { None }
+        })
+        .collect();
 
     // Sort the candidates by depth, source file, and line number
-    candidates.sort_by(|a, b| {
+    candidates.sort_unstable_by(|a, b| {
         let a_entry = a.0;
         let a_depth = a.1;
         let b_entry = b.0;

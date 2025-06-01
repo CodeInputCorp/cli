@@ -98,6 +98,45 @@ fn bench_find_files_for_tag_large_dataset(c: &mut Criterion) {
     });
 }
 
+fn bench_find_files_for_tag_mega_large_dataset(c: &mut Criterion) {
+    let target_tag = create_test_tag("core");
+    let mut files = Vec::new();
+
+    // Create 25,000 files with mixed tags
+    for i in 0..25000 {
+        let tags = if i % 100 == 0 {
+            // 1% of files with target tag
+            vec![target_tag.clone()]
+        } else if i % 100 == 1 {
+            // 1% of files with target + another tag
+            vec![target_tag.clone(), create_test_tag("shared")]
+        } else if i % 100 == 2 {
+            // 1% of files with target + multiple tags
+            vec![
+                target_tag.clone(),
+                create_test_tag(&format!("module-{}", i % 20)),
+                create_test_tag(&format!("type-{}", i % 10)),
+            ]
+        } else {
+            // 97% of files with other tags
+            vec![create_test_tag(&format!("module-{}", i % 50))]
+        };
+        files.push(create_test_file_entry(
+            &format!(
+                "src/module_{}/submodule_{}/file_{}.rs",
+                i / 1000,
+                (i / 100) % 10,
+                i
+            ),
+            tags,
+        ));
+    }
+
+    c.bench_function("find_files_for_tag_mega_large", |b| {
+        b.iter(|| find_files_for_tag(black_box(&files), black_box(&target_tag)))
+    });
+}
+
 fn bench_find_files_for_tag_no_matches(c: &mut Criterion) {
     let target_tag = create_test_tag("nonexistent");
     let mut files = Vec::new();
@@ -402,6 +441,7 @@ criterion_group!(
     bench_find_files_for_tag_small_dataset,
     bench_find_files_for_tag_medium_dataset,
     bench_find_files_for_tag_large_dataset,
+    bench_find_files_for_tag_mega_large_dataset,
     bench_find_files_for_tag_no_matches,
     bench_find_files_for_tag_multiple_tags_per_file,
     bench_find_tags_for_file_simple_pattern,
