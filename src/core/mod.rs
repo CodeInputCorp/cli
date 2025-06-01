@@ -4,6 +4,7 @@ pub(crate) mod common;
 pub mod owner_resolver;
 pub(crate) mod parse;
 pub mod parser;
+pub(crate) mod smart_iter;
 pub mod tag_resolver;
 pub mod types;
 

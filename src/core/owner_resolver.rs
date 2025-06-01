@@ -1,3 +1,4 @@
+use super::smart_iter::SmartIter;
 use crate::utils::error::{Error, Result};
 use ignore::overrides::{Override, OverrideBuilder};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -399,53 +400,5 @@ mod tests {
         // Should match the valid pattern and skip the invalid one
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].identifier, "@rust-team");
-    }
-}
-
-trait SmartIter<T: Send + Sync> {
-    fn smart_iter(&self, n: usize) -> SmartIterator<T>;
-}
-
-impl<'a, T: Send + Sync> SmartIter<T> for [T] {
-    fn smart_iter(&self, n: usize) -> SmartIterator<T> {
-        if self.len() <= n {
-            SmartIterator::Sequential(self.iter())
-        } else {
-            SmartIterator::Parallel(self.par_iter())
-        }
-    }
-}
-
-enum SmartIterator<'a, T: Send + Sync> {
-    Sequential(std::slice::Iter<'a, T>),
-    Parallel(rayon::slice::Iter<'a, T>),
-}
-
-enum SmartFilterMap<'a, T: Send + Sync, F> {
-    Parallel(rayon::iter::FilterMap<rayon::slice::Iter<'a, T>, F>),
-    Sequential(std::iter::FilterMap<std::slice::Iter<'a, T>, F>),
-}
-
-impl<'a, T: Send + Sync> SmartIterator<'a, T> {
-    fn filter_map<B: Send + Sync, F>(self, f: F) -> SmartFilterMap<'a, T, F>
-    where
-        F: Fn(&'a T) -> Option<B> + Send + Sync,
-    {
-        match self {
-            SmartIterator::Parallel(iter) => SmartFilterMap::Parallel(iter.filter_map(f)),
-            SmartIterator::Sequential(iter) => SmartFilterMap::Sequential(iter.filter_map(f)),
-        }
-    }
-}
-
-impl<'a, T: Send + Sync, B: Send + Sync, F> SmartFilterMap<'a, T, F>
-where
-    F: Fn(&'a T) -> Option<B> + Send + Sync,
-{
-    fn collect(self) -> Vec<B> {
-        match self {
-            SmartFilterMap::Parallel(iter) => iter.collect(),
-            SmartFilterMap::Sequential(iter) => iter.collect(),
-        }
     }
 }
