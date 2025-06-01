@@ -9,7 +9,7 @@ use super::owner_resolver::find_owners_for_file;
 use super::parse::parse_repo;
 use super::tag_resolver::find_tags_for_file;
 use super::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
-use crate::core::owner_resolver::find_owners_and_tags_for_file;
+use crate::core::resolver::find_owners_and_tags_for_file;
 use crate::utils::error::{Error, Result};
 
 /// Create a cache from parsed CODEOWNERS entries and files
