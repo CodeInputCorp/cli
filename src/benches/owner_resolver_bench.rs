@@ -103,6 +103,51 @@ fn bench_find_files_for_owner_large_dataset(c: &mut Criterion) {
     });
 }
 
+fn bench_find_files_for_owner_mega_large_dataset(c: &mut Criterion) {
+    let target_owner = create_test_owner("@frontend-team", OwnerType::Team);
+    let mut files = Vec::new();
+
+    // Create 25,000 files with mixed ownership
+    for i in 0..25000 {
+        let owners = if i % 100 == 0 {
+            // 1% of files owned by target
+            vec![target_owner.clone()]
+        } else if i % 100 == 1 {
+            // 1% of files with target + another owner
+            vec![
+                target_owner.clone(),
+                create_test_owner("@backend-team", OwnerType::Team),
+            ]
+        } else if i % 100 == 2 {
+            // 1% of files with target + multiple others
+            vec![
+                target_owner.clone(),
+                create_test_owner(&format!("@team-{}", i % 20), OwnerType::Team),
+                create_test_owner(&format!("user-{}", i % 10), OwnerType::User),
+            ]
+        } else {
+            // 97% of files with other owners
+            vec![create_test_owner(
+                &format!("@team-{}", i % 50),
+                OwnerType::Team,
+            )]
+        };
+        files.push(create_test_file_entry(
+            &format!(
+                "src/module_{}/submodule_{}/file_{}.rs",
+                i / 1000,
+                (i / 100) % 10,
+                i
+            ),
+            owners,
+        ));
+    }
+
+    c.bench_function("find_files_for_owner_mega_large", |b| {
+        b.iter(|| find_files_for_owner(black_box(&files), black_box(&target_owner)))
+    });
+}
+
 fn bench_find_files_for_owner_no_matches(c: &mut Criterion) {
     let target_owner = create_test_owner("@nonexistent-team", OwnerType::Team);
     let mut files = Vec::new();
@@ -355,6 +400,7 @@ criterion_group!(
     bench_find_files_for_owner_small_dataset,
     bench_find_files_for_owner_medium_dataset,
     bench_find_files_for_owner_large_dataset,
+    bench_find_files_for_owner_mega_large_dataset,
     bench_find_files_for_owner_no_matches,
     bench_find_files_for_owner_multiple_owners_per_file,
     bench_find_owners_for_file_simple_pattern,

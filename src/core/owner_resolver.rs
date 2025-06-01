@@ -1,5 +1,6 @@
 use crate::utils::error::{Error, Result};
 use ignore::overrides::{Override, OverrideBuilder};
+use rayon::prelude::*;
 
 use std::path::{Path, PathBuf};
 
@@ -9,8 +10,14 @@ use super::types::{CodeownersEntry, FileEntry, Owner};
 pub fn find_files_for_owner(files: &[FileEntry], owner: &Owner) -> Vec<PathBuf> {
     files
         .iter()
-        .filter(|file_entry| file_entry.owners.contains(owner))
-        .map(|file_entry| file_entry.path.clone())
+        .filter_map(|file_entry| {
+            // Use any() with early termination instead of contains()
+            if file_entry.owners.iter().any(|o| o == owner) {
+                Some(file_entry.path.clone())
+            } else {
+                None
+            }
+        })
         .collect()
 }
 

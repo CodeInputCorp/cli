@@ -37,6 +37,7 @@ journald = ["slog-journald"]
 syslog = ["slog-syslog"]
 
 [dependencies]
+rayon = "1.10.0"
 human-panic = "2.0.0"
 better-panic = "0.3.0"
 log = "0.4.27"
