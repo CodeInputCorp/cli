@@ -1,6 +1,6 @@
 use crate::utils::error::{Error, Result};
 use ignore::overrides::{Override, OverrideBuilder};
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use std::path::{Path, PathBuf};
 
@@ -22,72 +22,73 @@ pub fn find_files_for_owner(files: &[FileEntry], owner: &Owner) -> Vec<PathBuf> 
 }
 
 /// Find owners for a specific file based on all parsed CODEOWNERS entries
-pub fn find_owners_for_file(file_path: &Path, entries: &[CodeownersEntry]) -> Result<Vec<Owner>> {
+pub fn find_owners_for_file<'a>(
+    file_path: &'a Path, entries: &'a [CodeownersEntry],
+) -> Result<Vec<Owner>> {
     // file directory
     let target_dir = file_path
         .parent()
         .ok_or_else(|| Error::new("file path has no parent directory"))?;
 
     // CodeownersEntry candidates
-    let mut candidates = Vec::new();
-
-    for entry in entries {
-        let codeowners_dir = match entry.source_file.parent() {
-            Some(dir) => dir,
-            None => {
-                eprintln!(
-                    "CODEOWNERS entry has no parent directory: {}",
-                    entry.source_file.display()
-                );
-                continue;
-            }
-        };
-
-        // Check if the CODEOWNERS directory is an ancestor of the target directory
-        if !target_dir.starts_with(codeowners_dir) {
-            continue;
-        }
-
-        // Calculate the depth as the number of components in the relative path from codeowners_dir to target_dir
-        let rel_path = match target_dir.strip_prefix(codeowners_dir) {
-            Ok(p) => p,
-            Err(_) => continue, // Should not happen due to starts_with check
-        };
-        let depth = rel_path.components().count();
-
-        // Check if the pattern matches the target file
-        let matches = {
-            let mut builder = OverrideBuilder::new(codeowners_dir);
-            if let Err(e) = builder.add(&entry.pattern) {
-                eprintln!(
-                    "Invalid pattern '{}' in {}: {}",
-                    entry.pattern,
-                    entry.source_file.display(),
-                    e
-                );
-                continue;
-            }
-
-            let over: Override = match builder.build() {
-                Ok(o) => o,
-                Err(e) => {
+    let mut candidates = entries
+        .smart_iter(3)
+        .filter_map(|entry| {
+            let codeowners_dir = match entry.source_file.parent() {
+                Some(dir) => dir,
+                None => {
                     eprintln!(
-                        "Failed to build override for pattern '{}': {}",
-                        entry.pattern, e
+                        "CODEOWNERS entry has no parent directory: {}",
+                        entry.source_file.display()
                     );
-                    continue;
+                    return None;
                 }
             };
-            over.matched(file_path, false).is_whitelist()
-        };
 
-        if matches {
-            candidates.push((entry, depth));
-        }
-    }
+            // Check if the CODEOWNERS directory is an ancestor of the target directory
+            if !target_dir.starts_with(codeowners_dir) {
+                return None;
+            }
+
+            // Calculate the depth as the number of components in the relative path from codeowners_dir to target_dir
+            let rel_path = match target_dir.strip_prefix(codeowners_dir) {
+                Ok(p) => p,
+                Err(_) => return None, // Should not happen due to starts_with check
+            };
+            let depth = rel_path.components().count();
+
+            // Check if the pattern matches the target file
+            let matches = {
+                let mut builder = OverrideBuilder::new(codeowners_dir);
+                if let Err(e) = builder.add(&entry.pattern) {
+                    eprintln!(
+                        "Invalid pattern '{}' in {}: {}",
+                        entry.pattern,
+                        entry.source_file.display(),
+                        e
+                    );
+                    return None;
+                }
+
+                let over: Override = match builder.build() {
+                    Ok(o) => o,
+                    Err(e) => {
+                        eprintln!(
+                            "Failed to build override for pattern '{}': {}",
+                            entry.pattern, e
+                        );
+                        return None;
+                    }
+                };
+                over.matched(file_path, false).is_whitelist()
+            };
+
+            if matches { Some((entry, depth)) } else { None }
+        })
+        .collect();
 
     // Sort the candidates by depth, source file, and line number
-    candidates.sort_by(|a, b| {
+    candidates.sort_unstable_by(|a, b| {
         let a_entry = a.0;
         let a_depth = a.1;
         let b_entry = b.0;
@@ -398,5 +399,53 @@ mod tests {
         // Should match the valid pattern and skip the invalid one
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].identifier, "@rust-team");
+    }
+}
+
+trait SmartIter<T: Send + Sync> {
+    fn smart_iter(&self, n: usize) -> SmartIterator<T>;
+}
+
+impl<'a, T: Send + Sync> SmartIter<T> for [T] {
+    fn smart_iter(&self, n: usize) -> SmartIterator<T> {
+        if self.len() <= n {
+            SmartIterator::Sequential(self.iter())
+        } else {
+            SmartIterator::Parallel(self.par_iter())
+        }
+    }
+}
+
+enum SmartIterator<'a, T: Send + Sync> {
+    Sequential(std::slice::Iter<'a, T>),
+    Parallel(rayon::slice::Iter<'a, T>),
+}
+
+enum SmartFilterMap<'a, T: Send + Sync, F> {
+    Parallel(rayon::iter::FilterMap<rayon::slice::Iter<'a, T>, F>),
+    Sequential(std::iter::FilterMap<std::slice::Iter<'a, T>, F>),
+}
+
+impl<'a, T: Send + Sync> SmartIterator<'a, T> {
+    fn filter_map<B: Send + Sync, F>(self, f: F) -> SmartFilterMap<'a, T, F>
+    where
+        F: Fn(&'a T) -> Option<B> + Send + Sync,
+    {
+        match self {
+            SmartIterator::Parallel(iter) => SmartFilterMap::Parallel(iter.filter_map(f)),
+            SmartIterator::Sequential(iter) => SmartFilterMap::Sequential(iter.filter_map(f)),
+        }
+    }
+}
+
+impl<'a, T: Send + Sync, B: Send + Sync, F> SmartFilterMap<'a, T, F>
+where
+    F: Fn(&'a T) -> Option<B> + Send + Sync,
+{
+    fn collect(self) -> Vec<B> {
+        match self {
+            SmartFilterMap::Parallel(iter) => iter.collect(),
+            SmartFilterMap::Sequential(iter) => iter.collect(),
+        }
     }
 }
