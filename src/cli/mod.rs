@@ -225,7 +225,7 @@ pub fn cli_match() -> Result<()> {
                 }
             }
         }
-        Commands::Config => commands::config()?,
+        Commands::Config => commands::config::run()?,
     }
 
     Ok(())
@@ -238,7 +238,7 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             path,
             cache_file,
             format,
-        } => commands::codeowners_parse(path, cache_file.as_deref(), *format),
+        } => commands::parse::run(path, cache_file.as_deref(), *format),
         CodeownersSubcommand::ListFiles {
             path,
             tags,
@@ -247,7 +247,7 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             show_all,
             format,
             cache_file,
-        } => commands::codeowners_list_files(
+        } => commands::list_files::run(
             path.as_deref(),
             tags.as_deref(),
             owners.as_deref(),
@@ -260,20 +260,18 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             path,
             format,
             cache_file,
-        } => commands::codeowners_list_owners(path.as_deref(), format, cache_file.as_deref()),
+        } => commands::list_owners::run(path.as_deref(), format, cache_file.as_deref()),
         CodeownersSubcommand::ListTags {
             path,
             format,
             cache_file,
-        } => commands::codeowners_list_tags(path.as_deref(), format, cache_file.as_deref()),
+        } => commands::list_tags::run(path.as_deref(), format, cache_file.as_deref()),
         CodeownersSubcommand::Inspect {
             file_path,
             repo,
             format,
             cache_file,
-        } => {
-            commands::codeowners_inspect(file_path, repo.as_deref(), format, cache_file.as_deref())
-        }
+        } => commands::inspect::run(file_path, repo.as_deref(), format, cache_file.as_deref()),
     }
 }
 
