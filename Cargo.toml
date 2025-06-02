@@ -21,6 +21,11 @@ path = "src/benches/parser_bench.rs"
 harness = false
 
 [[bench]]
+name = "resolver_bench"
+path = "src/benches/resolver_bench.rs"
+harness = false
+
+[[bench]]
 name = "owner_resolver_bench"
 path = "src/benches/owner_resolver_bench.rs"
 harness = false

@@ -32,7 +32,6 @@ pub fn build_cache(
 
                     let (owners, tags) =
                         find_owners_and_tags_for_file(file_path, &entries).unwrap();
-                    //let tags = find_tags_for_file(file_path, &entries).unwrap();
 
                     // Build file entry
                     FileEntry {
