@@ -1,5 +1,7 @@
 use codeinput::core::resolver::find_owners_and_tags_for_file;
-use codeinput::core::types::{CodeownersEntry, Owner, OwnerType, Tag};
+use codeinput::core::types::{
+    CodeownersEntry, CodeownersEntryMatcher, Owner, OwnerType, Tag, codeowners_entry_to_matcher,
+};
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
 use std::path::{Path, PathBuf};
@@ -15,28 +17,29 @@ fn create_test_owner(identifier: &str, owner_type: OwnerType) -> Owner {
     }
 }
 
-fn create_test_codeowners_entry(
+fn create_test_codeowners_entry_matcher(
     source_file: &str, line_number: usize, pattern: &str, owners: Vec<Owner>, tags: Vec<Tag>,
-) -> CodeownersEntry {
-    CodeownersEntry {
+) -> CodeownersEntryMatcher {
+    let entry = CodeownersEntry {
         source_file: PathBuf::from(source_file),
         line_number,
         pattern: pattern.to_string(),
         owners,
         tags,
-    }
+    };
+    codeowners_entry_to_matcher(&entry)
 }
 
 fn bench_find_owners_and_tags_simple_pattern(c: &mut Criterion) {
     let entries = vec![
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             1,
             "*.rs",
             vec![create_test_owner("@rust-team", OwnerType::Team)],
             vec![create_test_tag("rust")],
         ),
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             2,
             "*.js",
@@ -54,21 +57,21 @@ fn bench_find_owners_and_tags_simple_pattern(c: &mut Criterion) {
 
 fn bench_find_owners_and_tags_complex_patterns(c: &mut Criterion) {
     let entries = vec![
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             1,
             "*",
             vec![create_test_owner("@global-team", OwnerType::Team)],
             vec![create_test_tag("global")],
         ),
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             5,
             "src/**/*.rs",
             vec![create_test_owner("@rust-team", OwnerType::Team)],
             vec![create_test_tag("rust-source")],
         ),
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             10,
             "src/frontend/**/*",
@@ -89,7 +92,7 @@ fn bench_find_owners_and_tags_many_entries(c: &mut Criterion) {
 
     // Create many entries with different patterns
     for i in 0..100 {
-        entries.push(create_test_codeowners_entry(
+        entries.push(create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             i + 1,
             &format!("src/module_{}/**/*", i),
@@ -108,7 +111,7 @@ fn bench_find_owners_and_tags_many_entries(c: &mut Criterion) {
 fn bench_find_owners_and_tags_nested_codeowners(c: &mut Criterion) {
     let entries = vec![
         // Root CODEOWNERS
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             1,
             "*",
@@ -116,7 +119,7 @@ fn bench_find_owners_and_tags_nested_codeowners(c: &mut Criterion) {
             vec![create_test_tag("root")],
         ),
         // Nested CODEOWNERS in src/
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/src/CODEOWNERS",
             1,
             "*.rs",
@@ -124,7 +127,7 @@ fn bench_find_owners_and_tags_nested_codeowners(c: &mut Criterion) {
             vec![create_test_tag("rust")],
         ),
         // Nested CODEOWNERS in src/frontend/
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/src/frontend/CODEOWNERS",
             1,
             "*.tsx",
@@ -141,7 +144,7 @@ fn bench_find_owners_and_tags_nested_codeowners(c: &mut Criterion) {
 }
 
 fn bench_find_owners_and_tags_no_matches(c: &mut Criterion) {
-    let entries = vec![create_test_codeowners_entry(
+    let entries = vec![create_test_codeowners_entry_matcher(
         "/project/CODEOWNERS",
         1,
         "*.js",
@@ -158,14 +161,14 @@ fn bench_find_owners_and_tags_no_matches(c: &mut Criterion) {
 
 fn bench_find_owners_and_tags_multiple_matches(c: &mut Criterion) {
     let entries = vec![
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             1,
             "*",
             vec![create_test_owner("@global-team", OwnerType::Team)],
             vec![create_test_tag("global")],
         ),
-        create_test_codeowners_entry(
+        create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             2,
             "*.rs",

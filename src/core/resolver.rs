@@ -88,6 +88,7 @@ pub fn find_owners_and_tags_for_file(
 mod tests {
     use super::*;
     use crate::core::types::{Owner, OwnerType, Tag};
+    use ignore::overrides::OverrideBuilder;
     use std::path::PathBuf;
 
     fn create_test_owner(identifier: &str, owner_type: OwnerType) -> Owner {
@@ -101,15 +102,23 @@ mod tests {
         Tag(name.to_string())
     }
 
-    fn create_test_codeowners_entry(
+    fn create_test_codeowners_entry_matcher(
         source_file: &str, line_number: usize, pattern: &str, owners: Vec<Owner>, tags: Vec<Tag>,
-    ) -> CodeownersEntry {
-        CodeownersEntry {
-            source_file: PathBuf::from(source_file),
+    ) -> CodeownersEntryMatcher {
+        let source_path = PathBuf::from(source_file);
+        let codeowners_dir = source_path.parent().unwrap();
+
+        let mut builder = OverrideBuilder::new(codeowners_dir);
+        builder.add(pattern).unwrap();
+        let override_matcher = builder.build().unwrap();
+
+        CodeownersEntryMatcher {
+            source_file: source_path,
             line_number,
             pattern: pattern.to_string(),
             owners,
             tags,
+            override_matcher,
         }
     }
 
@@ -126,7 +135,7 @@ mod tests {
     fn test_find_owners_and_tags_for_file_simple_match() {
         let expected_owner = create_test_owner("@rust-team", OwnerType::Team);
         let expected_tag = create_test_tag("rust");
-        let entries = vec![create_test_codeowners_entry(
+        let entries = vec![create_test_codeowners_entry_matcher(
             "/project/CODEOWNERS",
             1,
             "*.rs",
@@ -151,14 +160,14 @@ mod tests {
         let src_tag = create_test_tag("source");
 
         let entries = vec![
-            create_test_codeowners_entry(
+            create_test_codeowners_entry_matcher(
                 "/project/CODEOWNERS",
                 1,
                 "*",
                 vec![root_owner.clone()],
                 vec![root_tag.clone()],
             ),
-            create_test_codeowners_entry(
+            create_test_codeowners_entry_matcher(
                 "/project/src/CODEOWNERS",
                 1,
                 "*.rs",
@@ -184,14 +193,14 @@ mod tests {
         let specific_tag = create_test_tag("specific");
 
         let entries = vec![
-            create_test_codeowners_entry(
+            create_test_codeowners_entry_matcher(
                 "/project/CODEOWNERS",
                 1,
                 "*",
                 vec![general_owner.clone()],
                 vec![general_tag.clone()],
             ),
-            create_test_codeowners_entry(
+            create_test_codeowners_entry_matcher(
                 "/project/CODEOWNERS",
                 10,
                 "src/*.rs",
@@ -210,23 +219,14 @@ mod tests {
     }
 
     #[test]
-    fn test_find_owners_and_tags_for_file_invalid_pattern() {
-        let entries = vec![
-            create_test_codeowners_entry(
-                "/project/CODEOWNERS",
-                1,
-                "[invalid",
-                vec![create_test_owner("@team1", OwnerType::Team)],
-                vec![create_test_tag("tag1")],
-            ),
-            create_test_codeowners_entry(
-                "/project/CODEOWNERS",
-                2,
-                "*.rs",
-                vec![create_test_owner("@team2", OwnerType::Team)],
-                vec![create_test_tag("tag2")],
-            ),
-        ];
+    fn test_find_owners_and_tags_for_file_valid_pattern() {
+        let entries = vec![create_test_codeowners_entry_matcher(
+            "/project/CODEOWNERS",
+            2,
+            "*.rs",
+            vec![create_test_owner("@team2", OwnerType::Team)],
+            vec![create_test_tag("tag2")],
+        )];
 
         let file_path = Path::new("/project/src/main.rs");
         let result = find_owners_and_tags_for_file(file_path, &entries).unwrap();
