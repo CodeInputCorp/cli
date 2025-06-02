@@ -1,25 +1,26 @@
-use super::types::Tag;
+use super::{
+    smart_iter::SmartIter,
+    types::{CodeownersEntryMatcher, Tag},
+};
 use crate::utils::error::{Error, Result};
 use ignore::overrides::{Override, OverrideBuilder};
 
-use std::path::Path;
+use std::{path::Path, time::Instant};
 
 use super::types::{CodeownersEntry, Owner};
 
 /// Find both owners and tags for a specific file based on all parsed CODEOWNERS entries
 pub fn find_owners_and_tags_for_file(
-    file_path: &Path, entries: &[CodeownersEntry],
+    file_path: &Path, entries: &[CodeownersEntryMatcher],
 ) -> Result<(Vec<Owner>, Vec<Tag>)> {
     // Early return if no entries
     if entries.is_empty() {
         return Ok((Vec::new(), Vec::new()));
     }
-    let target_dir = file_path.parent().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "file path has no parent directory",
-        )
-    })?;
+
+    let target_dir = file_path
+        .parent()
+        .ok_or_else(|| Error::new("file path has no parent directory"))?;
 
     let mut candidates: Vec<_> = entries
         .iter()
@@ -45,31 +46,15 @@ pub fn find_owners_and_tags_for_file(
                 Ok(p) => p,
                 Err(_) => return None, // Should not happen due to starts_with check
             };
+
             let depth = rel_path.components().count();
 
             // Check if the pattern matches the target file
             let matches = {
-                let mut builder = OverrideBuilder::new(codeowners_dir);
-                if let Err(e) = builder.add(&entry.pattern) {
-                    eprintln!(
-                        "Invalid pattern '{}' in {}: {}",
-                        entry.pattern,
-                        entry.source_file.display(),
-                        e
-                    );
-                    return None;
-                }
-                let over: Override = match builder.build() {
-                    Ok(o) => o,
-                    Err(e) => {
-                        eprintln!(
-                            "Failed to build override for pattern '{}': {}",
-                            entry.pattern, e
-                        );
-                        return None;
-                    }
-                };
-                over.matched(file_path, false).is_whitelist()
+                entry
+                    .override_matcher
+                    .matched(file_path, false)
+                    .is_whitelist()
             };
 
             if matches { Some((entry, depth)) } else { None }

@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use ignore::overrides::Override;
 use serde::{Deserialize, Serialize};
 
 /// CODEOWNERS entry with source tracking
@@ -10,6 +11,61 @@ pub struct CodeownersEntry {
     pub pattern: String,
     pub owners: Vec<Owner>,
     pub tags: Vec<Tag>,
+}
+
+/// CODEOWNERS entry with Override matcher
+#[derive(Debug)]
+pub struct CodeownersEntryMatcher {
+    pub source_file: PathBuf,
+    pub line_number: usize,
+    pub pattern: String,
+    pub owners: Vec<Owner>,
+    pub tags: Vec<Tag>,
+    pub override_matcher: Override,
+}
+
+pub fn codeowners_entry_to_matcher(entry: &CodeownersEntry) -> CodeownersEntryMatcher {
+    let codeowners_dir = match entry.source_file.parent() {
+        Some(dir) => dir,
+        None => {
+            eprintln!(
+                "CODEOWNERS entry has no parent directory: {}",
+                entry.source_file.display()
+            );
+            panic!("Invalid CODEOWNERS entry without parent directory");
+        }
+    };
+
+    let mut builder = ignore::overrides::OverrideBuilder::new(codeowners_dir);
+
+    if let Err(e) = builder.add(&entry.pattern) {
+        eprintln!(
+            "Invalid pattern '{}' in {}: {}",
+            entry.pattern,
+            entry.source_file.display(),
+            e
+        );
+        panic!("Invalid CODEOWNERS entry pattern");
+    }
+    let override_matcher: Override = match builder.build() {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!(
+                "Failed to build override for pattern '{}': {}",
+                entry.pattern, e
+            );
+            panic!("Failed to build CODEOWNERS entry matcher");
+        }
+    };
+
+    CodeownersEntryMatcher {
+        source_file: entry.source_file.clone(),
+        line_number: entry.line_number,
+        pattern: entry.pattern.clone(),
+        owners: entry.owners.clone(),
+        tags: entry.tags.clone(),
+        override_matcher,
+    }
 }
 
 /// Detailed owner representation

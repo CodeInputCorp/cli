@@ -7,3 +7,5 @@ custom_config.toml
 example-repo
 .codeowners.cache
 perf.*
+example-repo
+CODEOWNERS

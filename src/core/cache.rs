@@ -10,6 +10,7 @@ use super::parse::parse_repo;
 use super::tag_resolver::find_tags_for_file;
 use super::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
 use crate::core::resolver::find_owners_and_tags_for_file;
+use crate::core::types::{CodeownersEntryMatcher, codeowners_entry_to_matcher};
 use crate::utils::error::{Error, Result};
 
 /// Create a cache from parsed CODEOWNERS entries and files
@@ -21,9 +22,14 @@ pub fn build_cache(
 
     println!("start building cache");
 
+    let matched_entries: Vec<CodeownersEntryMatcher> = entries
+        .iter()
+        .map(|entry| codeowners_entry_to_matcher(entry))
+        .collect();
+
     // Process each file to find owners and tags
     let file_entries: Vec<FileEntry> = files
-        .par_chunks(10)
+        .par_chunks(100)
         .flat_map(|chunk| {
             chunk
                 .iter()
@@ -31,7 +37,7 @@ pub fn build_cache(
                     println!("Processing file: {}", file_path.display());
 
                     let (owners, tags) =
-                        find_owners_and_tags_for_file(file_path, &entries).unwrap();
+                        find_owners_and_tags_for_file(file_path, &matched_entries).unwrap();
 
                     // Build file entry
                     FileEntry {
