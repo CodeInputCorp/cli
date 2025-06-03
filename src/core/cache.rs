@@ -1,17 +1,20 @@
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
-
-use rayon::prelude::*;
-use rayon::slice::ParallelSlice;
-
-use super::common::{collect_owners, collect_tags, get_repo_hash};
-use super::owner_resolver::find_owners_for_file;
-use super::parse::parse_repo;
-use super::tag_resolver::find_tags_for_file;
-use super::types::{CacheEncoding, CodeownersCache, CodeownersEntry, FileEntry};
-use crate::core::resolver::find_owners_and_tags_for_file;
-use crate::core::types::{CodeownersEntryMatcher, codeowners_entry_to_matcher};
-use crate::utils::error::{Error, Result};
+use crate::{
+    core::{
+        common::{collect_owners, collect_tags, get_repo_hash},
+        parse::parse_repo,
+        resolver::find_owners_and_tags_for_file,
+        types::{
+            CacheEncoding, CodeownersCache, CodeownersEntry, CodeownersEntryMatcher, FileEntry,
+            codeowners_entry_to_matcher,
+        },
+    },
+    utils::error::{Error, Result},
+};
+use rayon::{iter::ParallelIterator, slice::ParallelSlice};
+use std::{
+    io::{Read, Write},
+    path::{Path, PathBuf},
+};
 
 /// Create a cache from parsed CODEOWNERS entries and files
 pub fn build_cache(
@@ -20,21 +23,37 @@ pub fn build_cache(
     let mut owners_map = std::collections::HashMap::new();
     let mut tags_map = std::collections::HashMap::new();
 
-    println!("start building cache");
-
     let matched_entries: Vec<CodeownersEntryMatcher> = entries
         .iter()
         .map(|entry| codeowners_entry_to_matcher(entry))
         .collect();
 
     // Process each file to find owners and tags
+    let total_files = files.len();
+    let processed_count = std::sync::atomic::AtomicUsize::new(0);
+
     let file_entries: Vec<FileEntry> = files
         .par_chunks(100)
         .flat_map(|chunk| {
             chunk
                 .iter()
                 .map(|file_path| {
-                    println!("Processing file: {}", file_path.display());
+                    let current =
+                        processed_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+
+                    // Limit filename display length and clear the line properly
+                    let file_display = file_path.display().to_string();
+                    let truncated_file = if file_display.len() > 60 {
+                        format!("...{}", &file_display[file_display.len() - 57..])
+                    } else {
+                        file_display
+                    };
+
+                    print!(
+                        "\r\x1b[K📁 Processing [{}/{}] {}",
+                        current, total_files, truncated_file
+                    );
+                    std::io::stdout().flush().unwrap();
 
                     let (owners, tags) =
                         find_owners_and_tags_for_file(file_path, &matched_entries).unwrap();
@@ -50,7 +69,8 @@ pub fn build_cache(
         })
         .collect();
 
-    println!("file entry done");
+    // Print newline after processing is complete
+    println!("\r\x1b[K✅ Processed {} files successfully", total_files);
 
     // Process each owner
     let owners = collect_owners(&entries);
@@ -63,8 +83,6 @@ pub fn build_cache(
         }
     });
 
-    println!("owner done");
-
     // Process each tag
     let tags = collect_tags(&entries);
     tags.iter().for_each(|tag| {
@@ -75,8 +93,6 @@ pub fn build_cache(
             }
         }
     });
-
-    println!("tag done");
 
     Ok(CodeownersCache {
         hash,

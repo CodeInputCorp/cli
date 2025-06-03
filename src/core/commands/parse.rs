@@ -25,8 +25,6 @@ pub(crate) fn run(
     // Collect all CODEOWNERS files in the specified path
     let codeowners_files = find_codeowners_files(path)?;
 
-    println!("collected codeowners files");
-
     // Parse each CODEOWNERS file and collect entries
     let parsed_codeowners: Vec<CodeownersEntry> = codeowners_files
         .iter()
@@ -37,29 +35,19 @@ pub(crate) fn run(
         .flatten()
         .collect();
 
-    println!("collected entries");
-
     // Collect all files in the specified path
     let files = find_files(path)?;
-
-    println!("find files");
 
     // Build the cache from the parsed CODEOWNERS entries and the files
     let hash = get_repo_hash(path)?;
 
-    println!("repository hash: {:?}", hash);
-
     let cache = build_cache(parsed_codeowners, files, hash)?;
-
-    println!("built cache");
 
     // Store the cache in the specified file
     store_cache(&cache, &cache_file, encoding)?;
 
     // Test the cache by loading it back
     let _cache = load_cache(&cache_file)?;
-
-    println!("CODEOWNERS parsing completed successfully");
 
     Ok(())
 }
