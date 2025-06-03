@@ -1,8 +1,23 @@
 use crate::{
-    core::{cache::sync_cache, types::OutputFormat},
+    core::{
+        cache::sync_cache,
+        display::{truncate_path, truncate_string},
+        types::OutputFormat,
+    },
     utils::error::{Error, Result},
 };
 use std::io::{self, Write};
+use tabled::{Table, Tabled};
+
+#[derive(Tabled)]
+struct FileDisplay {
+    #[tabled(rename = "File Path")]
+    path: String,
+    #[tabled(rename = "Owners")]
+    owners: String,
+    #[tabled(rename = "Tags")]
+    tags: String,
+}
 
 /// Find and list files with their owners based on filter criteria
 pub(crate) fn run(
@@ -66,107 +81,58 @@ pub(crate) fn run(
     // Output the filtered files in the requested format
     match format {
         OutputFormat::Text => {
-            // Set column widths that work better for most displays
-            let path_width = 45; // Max width for path display
-            let owner_width = 26; // More space for owners
-            let tag_width = 26; // More space for tags
+            // Create table data
+            let table_data: Vec<FileDisplay> = filtered_files
+                .iter()
+                .map(|file| {
+                    let path_str = file.path.to_string_lossy().to_string();
 
-            // Print header
-            println!(
-                "==============================================================================="
-            );
-            println!(
-                " {:<path_width$} {:<owner_width$} {:<tag_width$}",
-                "File Path",
-                "Owners",
-                "Tags",
-                path_width = path_width,
-                owner_width = owner_width,
-                tag_width = tag_width
-            );
-            println!(
-                "==============================================================================="
-            );
-
-            // Print each file entry
-            for file in &filtered_files {
-                // Format the path - keep the filename but truncate the path if needed
-                let path_str = file.path.to_string_lossy();
-                let path_display = if path_str.len() > path_width {
-                    // Extract filename
-                    let filename = file
-                        .path
-                        .file_name()
-                        .map(|f| f.to_string_lossy().to_string())
-                        .unwrap_or_default();
-
-                    // Calculate available space for parent path
-                    let available_space = path_width.saturating_sub(filename.len() + 4); // +4 for ".../"
-
-                    if available_space > 5 {
-                        // Show part of the parent path
-                        let parent_path = path_str.to_string();
-                        let start_pos = parent_path.len().saturating_sub(path_width - 3);
-                        format!("...{}", &parent_path[start_pos..])
+                    let owners_str = if file.owners.is_empty() {
+                        "None".to_string()
                     } else {
-                        // Just show the filename with ellipsis
-                        format!(".../{}", filename)
+                        file.owners
+                            .iter()
+                            .map(|o| o.identifier.clone())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    };
+
+                    let tags_str = if file.tags.is_empty() {
+                        "None".to_string()
+                    } else {
+                        file.tags
+                            .iter()
+                            .map(|t| t.0.clone())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    };
+
+                    FileDisplay {
+                        path: truncate_path(&path_str, 60),
+                        owners: truncate_string(&owners_str, 40),
+                        tags: truncate_string(&tags_str, 30),
                     }
+                })
+                .collect();
+
+            // Get terminal width, fallback to 80 if unavailable
+            let terminal_width =
+                if let Some((terminal_size::Width(w), _)) = terminal_size::terminal_size() {
+                    w as usize
                 } else {
-                    path_str.to_string()
+                    80
                 };
 
-                // Format owners with more space
-                let owners_str = if file.owners.is_empty() {
-                    "None".to_string()
-                } else {
-                    file.owners
-                        .iter()
-                        .map(|o| o.identifier.clone())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                };
+            let mut table = Table::new(table_data);
+            table
+                .with(tabled::settings::Style::modern())
+                .with(tabled::settings::Width::wrap(
+                    terminal_width.saturating_sub(4),
+                ))
+                .with(tabled::settings::Padding::new(1, 1, 0, 0));
 
-                let owners_display = if owners_str.len() > owner_width {
-                    format!("{}...", &owners_str[0..owner_width - 3])
-                } else {
-                    owners_str
-                };
-
-                // Format tags with more space
-                let tags_str = if file.tags.is_empty() {
-                    "None".to_string()
-                } else {
-                    file.tags
-                        .iter()
-                        .map(|t| t.0.clone())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                };
-
-                let tags_display = if tags_str.len() > tag_width {
-                    format!("{}...", &tags_str[0..tag_width - 3])
-                } else {
-                    tags_str
-                };
-
-                println!(
-                    " {:<path_width$} {:<owner_width$} {:<tag_width$}",
-                    path_display,
-                    owners_display,
-                    tags_display,
-                    path_width = path_width,
-                    owner_width = owner_width,
-                    tag_width = tag_width
-                );
-            }
-            println!(
-                "==============================================================================="
-            );
-            println!(" Total: {} files", filtered_files.len());
-            println!(
-                "==============================================================================="
-            );
+            println!("{}", table);
+            println!("Total: {} files", filtered_files.len());
         }
         OutputFormat::Json => {
             println!("{}", serde_json::to_string_pretty(&filtered_files).unwrap());

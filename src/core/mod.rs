@@ -1,6 +1,7 @@
 pub(crate) mod cache;
 pub(crate) mod commands;
 pub(crate) mod common;
+pub(crate) mod display;
 pub mod owner_resolver;
 pub(crate) mod parse;
 pub mod parser;
