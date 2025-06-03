@@ -119,7 +119,7 @@ ci codeowners parse ./my-repo --format json
 ci codeowners parse --cache-file .custom-cache
 ```
 
-### List Files
+#### List Files
 
 Find and list files with their owners based on filter criteria:
 
@@ -152,7 +152,7 @@ ci codeowners list-files --unowned
 ci codeowners list-files --format json
 ```
 
-### List Owners
+#### List Owners
 
 Display aggregated owner statistics and file associations:
 
@@ -172,7 +172,7 @@ ci codeowners list-owners
 ci codeowners list-owners --format json
 ```
 
-### List Tags
+#### List Tags
 
 Analyze tag usage across CODEOWNERS files:
 
@@ -192,7 +192,7 @@ ci codeowners list-tags
 ci codeowners list-tags --format json
 ```
 
-### Inspect Files
+#### Inspect Files
 
 Get detailed ownership and tag information for a specific file:
 
