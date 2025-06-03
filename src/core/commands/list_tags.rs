@@ -1,8 +1,19 @@
 use crate::{
-    core::{cache::sync_cache, types::OutputFormat},
+    core::{cache::sync_cache, display::truncate_string, types::OutputFormat},
     utils::error::{Error, Result},
 };
 use std::io::{self, Write};
+use tabled::{Table, Tabled};
+
+#[derive(Tabled)]
+struct TagDisplay {
+    #[tabled(rename = "Tag")]
+    name: String,
+    #[tabled(rename = "Files")]
+    file_count: usize,
+    #[tabled(rename = "Sample Files")]
+    sample_files: String,
+}
 
 /// Audit and analyze tag usage across CODEOWNERS files
 pub(crate) fn run(
@@ -14,38 +25,17 @@ pub(crate) fn run(
     // Load the cache
     let cache = sync_cache(repo, cache_file)?;
 
+    // Sort tags by number of files they're associated with (descending)
+    let mut tags_with_counts: Vec<_> = cache.tags_map.iter().collect();
+    tags_with_counts.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+
     // Process the tags from the cache
     match format {
         OutputFormat::Text => {
-            // Column widths for the table
-            let tag_width = 30; // For tag name
-            let count_width = 10; // For file count
-            let files_width = 60; // For sample files
-
-            println!(
-                "==============================================================================="
-            );
-            println!(
-                " {:<tag_width$} {:<count_width$} {:<files_width$}",
-                "Tag",
-                "Files",
-                "Sample Files",
-                tag_width = tag_width,
-                count_width = count_width,
-                files_width = files_width
-            );
-            println!(
-                "==============================================================================="
-            );
-
-            if cache.tags_map.is_empty() {
-                println!(" No tags found in the codebase.");
-            } else {
-                // Sort tags by number of files they're associated with (descending)
-                let mut tags_with_counts: Vec<_> = cache.tags_map.iter().collect();
-                tags_with_counts.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
-
-                for (tag, paths) in tags_with_counts {
+            // Create table data
+            let table_data: Vec<TagDisplay> = tags_with_counts
+                .iter()
+                .map(|(tag, paths)| {
                     // Prepare sample file list - show filenames only, not full paths
                     let file_samples = if paths.is_empty() {
                         "None".to_string()
@@ -64,44 +54,39 @@ pub(crate) fn run(
                         if paths.len() > 5 {
                             display.push_str(&format!(" (+{})", paths.len() - 5));
                         }
-
-                        // Truncate if too long for display
-                        if display.len() > files_width {
-                            format!("{}...", &display[0..files_width - 3])
-                        } else {
-                            display
-                        }
+                        display
                     };
 
-                    // Display the tag name, truncate if needed
-                    let tag_display = if tag.0.len() > tag_width {
-                        format!("{}...", &tag.0[0..tag_width - 3])
-                    } else {
-                        tag.0.clone()
-                    };
+                    TagDisplay {
+                        name: truncate_string(&tag.0, 30),
+                        file_count: paths.len(),
+                        sample_files: truncate_string(&file_samples, 60),
+                    }
+                })
+                .collect();
 
-                    println!(
-                        " {:<tag_width$} {:<count_width$} {:<files_width$}",
-                        tag_display,
-                        paths.len(),
-                        file_samples,
-                        tag_width = tag_width,
-                        count_width = count_width,
-                        files_width = files_width
-                    );
-                }
-            }
-            println!(
-                "==============================================================================="
-            );
-            println!(" Total: {} tags", cache.tags_map.len());
-            println!(
-                "==============================================================================="
-            );
+            // Get terminal width, fallback to 80 if unavailable
+            let terminal_width =
+                if let Some((terminal_size::Width(w), _)) = terminal_size::terminal_size() {
+                    w as usize
+                } else {
+                    80
+                };
+
+            let mut table = Table::new(table_data);
+            table
+                .with(tabled::settings::Style::modern())
+                .with(tabled::settings::Width::wrap(
+                    terminal_width.saturating_sub(4),
+                ))
+                .with(tabled::settings::Padding::new(1, 1, 0, 0));
+
+            println!("{}", table);
+            println!("Total: {} tags", cache.tags_map.len());
         }
         OutputFormat::Json => {
             // Convert to a more friendly JSON structure
-            let tags_data: Vec<_> = cache.tags_map.iter()
+            let tags_data: Vec<_> = tags_with_counts.iter()
                 .map(|(tag, paths)| {
                     serde_json::json!({
                         "name": tag.0,
@@ -115,7 +100,7 @@ pub(crate) fn run(
         }
         OutputFormat::Bincode => {
             let encoded =
-                bincode::serde::encode_to_vec(&cache.tags_map, bincode::config::standard())
+                bincode::serde::encode_to_vec(&tags_with_counts, bincode::config::standard())
                     .map_err(|e| Error::new(&format!("Serialization error: {}", e)))?;
 
             // Write raw binary bytes to stdout
@@ -125,9 +110,6 @@ pub(crate) fn run(
         }
     }
 
-    println!(
-        "Tags listing completed - {} tags found",
-        cache.tags_map.len()
-    );
     Ok(())
 }
+
