@@ -263,7 +263,6 @@ The tool supports standard CODEOWNERS syntax with additional tag support:
 - **Users**: `@username`
 - **Teams**: `@org/team-name`
 - **Email**: `user@example.com`
-- **Unowned**: `NOOWNER` (case-insensitive)
 
 **Tag Format:**
 - Tags start with `#` and appear after owners
