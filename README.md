@@ -14,7 +14,27 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
 
+- [Features](#features)
+  - [CodeOwners](#codeowners)
+- [Installation](#installation)
+  - [From Release](#from-release)
+  - [From Cargo](#from-cargo)
+  - [From Source](#from-source)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+  - [CodeOwners](#codeowners-1)
+    - [Parse CODEOWNERS](#parse-codeowners)
+  - [List Files](#list-files)
+  - [List Owners](#list-owners)
+  - [List Tags](#list-tags)
+  - [Inspect Files](#inspect-files)
+  - [Configuration](#configuration)
+  - [Shell Completion](#shell-completion)
+- [CODEOWNERS Format](#codeowners-format)
+- [How to Contribute](#how-to-contribute)
+- [License](#license)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
