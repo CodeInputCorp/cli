@@ -174,6 +174,19 @@ enum CodeownersSubcommand {
         cache_file: Option<PathBuf>,
     },
     #[clap(
+        name = "list-rules",
+        about = "Display all CODEOWNERS rules from the cache"
+    )]
+    ListRules {
+        /// Output format: text|json|bincode
+        #[arg(long, value_name = "FORMAT", default_value = "text", value_parser = parse_output_format)]
+        format: OutputFormat,
+
+        /// Custom cache file location
+        #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
+        cache_file: Option<PathBuf>,
+    },
+    #[clap(
         name = "inspect",
         about = "Inspect ownership and tags for a specific file"
     )]
@@ -266,6 +279,9 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             format,
             cache_file,
         } => commands::list_tags::run(path.as_deref(), format, cache_file.as_deref()),
+        CodeownersSubcommand::ListRules { format, cache_file } => {
+            commands::list_rules::run(format, cache_file.as_deref())
+        }
         CodeownersSubcommand::Inspect {
             file_path,
             repo,
