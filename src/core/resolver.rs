@@ -1,4 +1,5 @@
 use super::{
+    inline_parser::detect_inline_codeowners,
     smart_iter::SmartIter,
     types::{CodeownersEntryMatcher, Tag},
 };
@@ -13,6 +14,11 @@ use super::types::{CodeownersEntry, Owner};
 pub fn find_owners_and_tags_for_file(
     file_path: &Path, entries: &[CodeownersEntryMatcher],
 ) -> Result<(Vec<Owner>, Vec<Tag>)> {
+    // First, check for inline CODEOWNERS declaration (highest priority)
+    if let Some(inline_entry) = detect_inline_codeowners(file_path)? {
+        return Ok((inline_entry.owners, inline_entry.tags));
+    }
+
     // Early return if no entries
     if entries.is_empty() {
         return Ok((Vec::new(), Vec::new()));
@@ -89,7 +95,9 @@ mod tests {
     use super::*;
     use crate::core::types::{Owner, OwnerType, Tag};
     use ignore::overrides::OverrideBuilder;
+    use std::fs;
     use std::path::PathBuf;
+    use tempfile::TempDir;
 
     fn create_test_owner(identifier: &str, owner_type: OwnerType) -> Owner {
         Owner {

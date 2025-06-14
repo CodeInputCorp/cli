@@ -29,6 +29,15 @@ pub struct CodeownersEntry {
     pub tags: Vec<Tag>,
 }
 
+/// Inline CODEOWNERS entry for file-specific ownership
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InlineCodeownersEntry {
+    pub file_path: PathBuf,
+    pub line_number: usize,
+    pub owners: Vec<Owner>,
+    pub tags: Vec<Tag>,
+}
+
 /// CODEOWNERS entry with Override matcher
 #[derive(Debug)]
 pub struct CodeownersEntryMatcher {
