@@ -20,8 +20,8 @@
 ///
 /// # Examples
 ///
-/// ```
-/// use crate::core::display::truncate_path;
+/// ```ignore
+/// use codeinput::core::display::truncate_path;
 ///
 /// // No truncation needed
 /// assert_eq!(truncate_path("short.txt", 20), "short.txt");
@@ -94,8 +94,8 @@ pub(crate) fn truncate_path(path: &str, max_len: usize) -> String {
 ///
 /// # Examples
 ///
-/// ```
-/// use crate::core::display::truncate_string;
+/// ```ignore
+/// use codeinput::core::display::truncate_string;
 ///
 /// // No truncation needed
 /// assert_eq!(truncate_string("short", 10), "short");
