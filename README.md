@@ -14,7 +14,6 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
 **Table of Contents**
 
 - [Features](#features)
@@ -34,6 +33,8 @@
   - [Configuration](#configuration)
   - [Shell Completion](#shell-completion)
 - [CODEOWNERS Format](#codeowners-format)
+  - [1. Traditional CODEOWNERS Files](#1-traditional-codeowners-files)
+  - [2. Inline Per-File Ownership](#2-inline-per-file-ownership)
 - [How to Contribute](#how-to-contribute)
 - [License](#license)
 
