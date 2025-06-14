@@ -14,6 +14,7 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 **Table of Contents**
 
 - [Features](#features)
@@ -41,16 +42,18 @@
 ## Features
 
 ### CodeOwners
+
 - **Advanced Parsing**: Parse CODEOWNERS files recursively across directory structures
-- **Ownership Analysis**: Analyze file ownership patterns and generate detailed reports  
-- **Tag Support**: Organize and query files using custom tags in CODEOWNERS  
-- **High Performance**: Efficient caching and parallel processing for large repositories  
-- **Flexible Filtering**: Filter files by owners, tags, or ownership status  
-- **Multiple Output Formats**: Support for text, JSON, and binary output formats  
+- **Ownership Analysis**: Analyze file ownership patterns and generate detailed reports
+- **Tag Support**: Organize and query files using custom tags in CODEOWNERS
+- **High Performance**: Efficient caching and parallel processing for large repositories
+- **Flexible Filtering**: Filter files by owners, tags, or ownership status
+- **Multiple Output Formats**: Support for text, JSON, and binary output formats
 
 ## Installation
 
 ### From Release
+
 Binaries coming soon...
 
 ### From Cargo
@@ -62,6 +65,7 @@ cargo install ci
 ```
 
 ### From Source
+
 ```bash
 git clone https://github.com/CodeInputCorp/cli.git
 cd cli
@@ -72,16 +76,19 @@ sudo cp target/release/ci /usr/local/bin/
 ## Quick Start
 
 1. **Parse your CODEOWNERS files** to build the cache:
+
    ```bash
    ci codeowners parse
    ```
 
 2. **List all files with their owners**:
+
    ```bash
    ci codeowners list-files
    ```
 
 3. **Find files owned by a specific team**:
+
    ```bash
    ci codeowners list-files --owners @frontend-team
    ```
@@ -104,10 +111,12 @@ ci codeowners parse [PATH] [OPTIONS]
 ```
 
 **Options:**
+
 - `--cache-file <FILE>`: Custom cache file location (default: `.codeowners.cache`)
 - `--format <FORMAT>`: Cache format - `bincode` or `json` (default: `bincode`)
 
 **Examples:**
+
 ```bash
 # Parse current directory
 ci codeowners parse
@@ -128,6 +137,7 @@ ci codeowners list-files [PATH] [OPTIONS]
 ```
 
 **Options:**
+
 - `--tags <LIST>`: Filter by tags (comma-separated)
 - `--owners <LIST>`: Filter by owners (comma-separated)
 - `--unowned`: Show only unowned files
@@ -135,6 +145,7 @@ ci codeowners list-files [PATH] [OPTIONS]
 - `--format <FORMAT>`: Output format - `text`, `json`, or `bincode`
 
 **Examples:**
+
 ```bash
 # List all owned files
 ci codeowners list-files
@@ -161,9 +172,11 @@ ci codeowners list-owners [PATH] [OPTIONS]
 ```
 
 **Options:**
+
 - `--format <FORMAT>`: Output format - `text`, `json`, or `bincode`
 
 **Examples:**
+
 ```bash
 # Show all owners with file counts
 ci codeowners list-owners
@@ -181,9 +194,11 @@ ci codeowners list-tags [PATH] [OPTIONS]
 ```
 
 **Options:**
+
 - `--format <FORMAT>`: Output format - `text`, `json`, or `bincode`
 
 **Examples:**
+
 ```bash
 # Show all tags with usage statistics
 ci codeowners list-tags
@@ -201,10 +216,12 @@ ci codeowners inspect <FILE_PATH> [OPTIONS]
 ```
 
 **Options:**
+
 - `--repo <PATH>`: Repository path (default: current directory)
 - `--format <FORMAT>`: Output format - `text`, `json`, or `bincode`
 
 **Examples:**
+
 ```bash
 # Inspect a specific file
 ci codeowners inspect src/main.rs
@@ -241,7 +258,11 @@ ci completion fish > ~/.config/fish/completions/codeinput.fish
 
 ## CODEOWNERS Format
 
-The tool supports standard CODEOWNERS syntax with additional tag support:
+The tool supports two approaches for defining code ownership:
+
+### 1. Traditional CODEOWNERS Files
+
+Standard CODEOWNERS syntax with additional tag support:
 
 ```
 # Standard ownership
@@ -259,15 +280,83 @@ The tool supports standard CODEOWNERS syntax with additional tag support:
 * @default-team #general
 ```
 
+**Pattern Matching Rules:**
+
+- `/path/to/dir/` - Matches all files and subdirectories recursively (GitHub compatible)
+- `/path/to/dir/*` - Matches direct files in the directory only
+- `/path/to/dir/**` - Matches all files and subdirectories recursively (explicit)
+- `*.ext` - Matches files with specific extension
+- `pattern` - Relative path matching
+
+**Priority Rules:**
+
+1. **Closest CODEOWNERS file**: Files in subdirectories take precedence over parent directories
+2. **Last match wins**: Later entries in the same CODEOWNERS file override earlier ones
+3. **Inline declarations**: Per-file inline ownership
+
+### 2. Inline Per-File Ownership
+
+For fine-grained control, declare ownership directly within individual files using the `!!!CODEOWNERS` marker:
+
+**Rust Example:**
+
+```rust
+// !!!CODEOWNERS @security-team @alice #security #critical
+use std::crypto;
+
+fn encrypt_data() {
+    // sensitive crypto code
+}
+```
+
+**JavaScript/TypeScript Example:**
+
+```javascript
+// !!!CODEOWNERS @frontend-team #ui #components
+export const Button = () => {
+  return <button>Click me</button>;
+};
+```
+
+**HTML Example:**
+
+```html
+<!-- !!!CODEOWNERS @design-team #ui #templates -->
+<div class="hero-section">
+  <h1>Welcome</h1>
+</div>
+```
+
+**CSS Example:**
+
+```css
+/* !!!CODEOWNERS @design-team #styles #branding */
+.brand-colors {
+  --primary: #007bff;
+  --secondary: #6c757d;
+}
+```
+
+**Inline Format Rules:**
+
+- Must appear within the first 50 lines of the file
+- Can be used in any comment style (`//`, `#`, `/**/`, `<!-- -->`)
+- Takes highest priority over all CODEOWNERS file patterns
+- Supports same owner and tag syntax as CODEOWNERS files
+- Only one inline declaration per file (first one found is used)
+
 **Supported Owner Types:**
+
 - **Users**: `@username`
 - **Teams**: `@org/team-name`
 - **Email**: `user@example.com`
 
 **Tag Format:**
+
 - Tags start with `#` and appear after owners
 - Multiple tags are supported: `#tag1 #tag2 #tag3`
 - Tags can contain letters, numbers, hyphens, and underscores
+- Comments after tags are ignored (e.g., `#tag1 # this is a comment`)
 
 ## How to Contribute
 
