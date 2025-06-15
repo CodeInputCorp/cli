@@ -219,6 +219,12 @@ fi
 echo -e "${GREEN}Starting tests with available tools...${NC}"
 echo
 
+# Cross-based tests (need cross + docker)
+CROSS_READY=0
+if [ $CROSS_AVAILABLE -eq 1 ] && [ $DOCKER_AVAILABLE -eq 1 ]; then
+    CROSS_READY=1
+fi
+
 # Start testing
 echo -e "${BLUE}=== Cross-Platform Tests ===${NC}"
 
@@ -232,40 +238,34 @@ else
     TEST_RESULTS+=("SKIPPED - target not installed")
 fi
 
-# Linux ARM64 test
-if [ $TARGET_ARM_LINUX -eq 1 ] && [ $LINUX_ARM_AVAILABLE -eq 1 ]; then
-    attempt_test "cargo" "aarch64-unknown-linux-gnu" "Linux ARM64 (cross-compile)" "$TEST_CMD_ARGS"
+# Linux ARM64 test (requires emulation or cross, so use cross if available)
+if [ $TARGET_ARM_LINUX -eq 1 ] && [ $CROSS_READY -eq 1 ]; then
+    attempt_test "cross" "aarch64-unknown-linux-gnu" "Linux ARM64 (cross-test)" "$TEST_CMD_ARGS"
 elif [ $TARGET_ARM_LINUX -eq 0 ]; then
     TEST_TARGETS+=("aarch64-unknown-linux-gnu")
-    TEST_DESCRIPTIONS+=("Linux ARM64 (cross-compile)")
-    TEST_TOOLS+=("cargo")
+    TEST_DESCRIPTIONS+=("Linux ARM64 (cross-test)")
+    TEST_TOOLS+=("cross")
     TEST_RESULTS+=("SKIPPED - target not installed")
-elif [ $LINUX_ARM_AVAILABLE -eq 0 ]; then
+elif [ $CROSS_READY -eq 0 ]; then
     TEST_TARGETS+=("aarch64-unknown-linux-gnu")
-    TEST_DESCRIPTIONS+=("Linux ARM64 (cross-compile)")
-    TEST_TOOLS+=("cargo")
-    TEST_RESULTS+=("SKIPPED - aarch64-linux-gnu-gcc not available")
+    TEST_DESCRIPTIONS+=("Linux ARM64 (cross-test)")
+    TEST_TOOLS+=("cross")
+    TEST_RESULTS+=("SKIPPED - cross/docker not available")
 fi
 
-# Windows GNU test
-if [ $TARGET_WIN_GNU -eq 1 ] && [ $MINGW_AVAILABLE -eq 1 ]; then
-    attempt_test "cargo" "x86_64-pc-windows-gnu" "Windows x86_64 GNU (mingw-w64)" "$TEST_CMD_ARGS"
+# Windows GNU test (requires Wine or cross for execution, so use cross if available)
+if [ $TARGET_WIN_GNU -eq 1 ] && [ $CROSS_READY -eq 1 ]; then
+    attempt_test "cross" "x86_64-pc-windows-gnu" "Windows x86_64 GNU (cross-test)" "$TEST_CMD_ARGS"
 elif [ $TARGET_WIN_GNU -eq 0 ]; then
     TEST_TARGETS+=("x86_64-pc-windows-gnu")
-    TEST_DESCRIPTIONS+=("Windows x86_64 GNU (mingw-w64)")
-    TEST_TOOLS+=("cargo")
+    TEST_DESCRIPTIONS+=("Windows x86_64 GNU (cross-test)")
+    TEST_TOOLS+=("cross")
     TEST_RESULTS+=("SKIPPED - target not installed")
-elif [ $MINGW_AVAILABLE -eq 0 ]; then
+elif [ $CROSS_READY -eq 0 ]; then
     TEST_TARGETS+=("x86_64-pc-windows-gnu")
-    TEST_DESCRIPTIONS+=("Windows x86_64 GNU (mingw-w64)")
-    TEST_TOOLS+=("cargo")
-    TEST_RESULTS+=("SKIPPED - mingw-w64-gcc not available")
-fi
-
-# Cross-based tests (need cross + docker)
-CROSS_READY=0
-if [ $CROSS_AVAILABLE -eq 1 ] && [ $DOCKER_AVAILABLE -eq 1 ]; then
-    CROSS_READY=1
+    TEST_DESCRIPTIONS+=("Windows x86_64 GNU (cross-test)")
+    TEST_TOOLS+=("cross")
+    TEST_RESULTS+=("SKIPPED - cross/docker not available")
 fi
 
 # macOS tests
