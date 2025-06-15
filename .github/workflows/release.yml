@@ -2,7 +2,8 @@ name: Release
 
 on:
   push:
-    branches: [master]
+    tags:
+      - '*'
 
 jobs:
   release:
@@ -57,7 +58,7 @@ jobs:
         shell: bash
         run: |
           echo "package_name=$(sed -En 's/name[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1)" >> $GITHUB_OUTPUT
-          echo "package_version=$(sed -En 's/version[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1)" >> $GITHUB_OUTPUT
+          echo "package_version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -108,7 +109,7 @@ jobs:
         id: vars
         run: |
           echo "package_name=$(sed -En 's/name[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1)" >> $GITHUB_OUTPUT
-          echo "package_version=$(sed -En 's/version[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1)" >> $GITHUB_OUTPUT
+          echo "package_version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
