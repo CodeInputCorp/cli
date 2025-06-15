@@ -14,6 +14,7 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 **Table of Contents**
 
 - [Features](#features)
@@ -53,14 +54,8 @@
 
 ## Installation
 
-### Pre-built Binaries
-
 <!-- RELEASE_INFO_START -->
-[0;32mFound release: 0.0.1-beta[0m
-
-## 📦 Installation
-
-### Download Pre-built Binaries
+### Pre-built Binaries
 
 **Latest Release: `0.0.1-beta`**
 
@@ -70,14 +65,14 @@
 - **macOS Intel**: [Download](https://github.com/CodeInputCorp/cli/releases/download/0.0.1-beta/ci-macos-x86_64)
 - **macOS Apple Silicon**: [Download](https://github.com/CodeInputCorp/cli/releases/download/0.0.1-beta/ci-macos-aarch64)
 
-### Installation Instructions
+#### Installation Instructions
 
 1. Download the appropriate binary for your platform
 2. Rename the downloaded file to `ci` (Linux/macOS) or `ci.exe` (Windows)
 3. Move the binary to your PATH: `mv ci /usr/local/bin/` (Linux/macOS)
 4. Make it executable: `chmod +x /usr/local/bin/ci` (Linux/macOS)
 
-### What's New in 0.0.1-beta
+#### What's New in 0.0.1-beta
 
 codeinput - 0.0.1-beta
 <!-- RELEASE_INFO_END -->
