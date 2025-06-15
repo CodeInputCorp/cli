@@ -1,3 +1,0 @@
-debug = false
-log_level = "info"
-cache_file = ".codeowners.cache"

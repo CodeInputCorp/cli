@@ -1,47 +1,9 @@
-[package]
-name = "codeinput"
-version = "0.0.1-beta"
-authors = ["Abid Omar <contact@omarabid.com>"]
-edition = "2024"
-repository = "https://github.com/CodeInputCorp/cli"
-readme = "README.md"
-license = "MIT"
-keywords = ["cli", "codeinput", "git", "tooling"]
-description = """
-code input cli.
-"""
+[workspace]
+members = ["codeinput", "ci"]
+resolver = "2"
 
-[[bin]]
-name = "ci"
-path = "src/main.rs"
-
-[[bench]]
-name = "parser_bench"
-path = "src/benches/parser_bench.rs"
-harness = false
-
-[[bench]]
-name = "resolver_bench"
-path = "src/benches/resolver_bench.rs"
-harness = false
-
-[[bench]]
-name = "owner_resolver_bench"
-path = "src/benches/owner_resolver_bench.rs"
-harness = false
-
-[[bench]]
-name = "tag_resolver_bench"
-path = "src/benches/tag_resolver_bench.rs"
-harness = false
-
-[features]
-nightly = []
-termlog = ["slog-term"]
-journald = ["slog-journald"]
-syslog = ["slog-syslog"]
-
-[dependencies]
+[workspace.dependencies]
+# Shared dependencies
 rayon = "1.10.0"
 human-panic = "2.0.0"
 better-panic = "0.3.0"
@@ -51,7 +13,7 @@ rand = "0.9.1"
 ignore = "0.4.23"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
-bincode = {version= "2.0.1", features = ["serde"] }
+bincode = { version = "2.0.1", features = ["serde"] }
 git2 = { version = "0.20.2", default-features = false }
 sha2 = { version = "0.10.9" }
 thiserror = "2.0.12"
@@ -60,22 +22,16 @@ color-backtrace = "0.7.0"
 config = "0.15.11"
 lazy_static = "1.5.0"
 slog = "2.7.0"
-slog-syslog = { version="0.13.0", optional = true }
-slog-term = {version = "2.9.1", optional = true }
+slog-syslog = "0.13.0"
+slog-term = "2.9.1"
 slog-scope = "4.4.0"
 slog-async = "2.8.0"
 slog-stdlog = "4.1.1"
 tabled = "0.19.0"
 terminal_size = "0.4.2"
+clap = { version = "4.5.39", features = ["cargo", "derive"] }
 
-[target.'cfg(target_os = "linux")'.dependencies]
-slog-journald = {version = "2.2.0", optional = true }
-
-[dependencies.clap]
-version = "4.5.39"
-features = ["cargo", "derive"]
-
-[dev-dependencies]
+# Dev dependencies
 assert_cmd = "2.0.17"
 predicates = "3.1.3"
 tempfile = "3.20"
