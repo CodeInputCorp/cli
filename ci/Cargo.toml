@@ -1,0 +1,41 @@
+[package]
+name = "ci"
+version = "0.0.1-beta"
+authors = ["Abid Omar <contact@omarabid.com>"]
+edition = "2021"
+repository = "https://github.com/CodeInputCorp/cli"
+readme = "../README.md"
+license = "MIT"
+keywords = ["cli", "codeowners", "git", "tooling", "binary"]
+description = """
+A powerful CLI tool for parsing, analyzing, and managing CODEOWNERS files.
+Provides advanced querying capabilities, ownership analysis, and tag-based file organization.
+"""
+
+[[bin]]
+name = "ci"
+path = "src/main.rs"
+
+[features]
+default = ["termlog"]
+termlog = ["codeinput/termlog"]
+journald = ["codeinput/journald"]
+syslog = ["codeinput/syslog"]
+
+[dependencies]
+codeinput = { path = "../codeinput" }
+human-panic = { workspace = true }
+better-panic = { workspace = true }
+log = { workspace = true }
+clap_complete = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tabled = { workspace = true }
+terminal_size = { workspace = true }
+clap = { workspace = true }
+
+[dev-dependencies]
+assert_cmd = { workspace = true }
+predicates = { workspace = true }
+tempfile = { workspace = true }
