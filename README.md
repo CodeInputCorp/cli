@@ -14,17 +14,14 @@
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
 **Table of Contents**
 
 - [Features](#features)
   - [CodeOwners](#codeowners)
 - [Installation](#installation)
   - [Pre-built Binaries](#pre-built-binaries)
-- [📦 Installation](#-installation)
-  - [Download Pre-built Binaries](#download-pre-built-binaries)
-  - [Installation Instructions](#installation-instructions)
-  - [What's New in 0.0.1-beta](#whats-new-in-001-beta)
+    - [Installation Instructions](#installation-instructions)
+    - [What's New in 0.0.1-beta](#whats-new-in-001-beta)
   - [From Cargo](#from-cargo)
   - [From Source](#from-source)
 - [Quick Start](#quick-start)
