@@ -103,8 +103,6 @@ pub fn parse_owner(owner_str: &str) -> Result<Owner> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::{self, File};
-    use tempfile::TempDir;
 
     #[test]
     fn test_parse_owner_user() -> Result<()> {

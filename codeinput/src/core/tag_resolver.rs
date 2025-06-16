@@ -109,19 +109,13 @@ pub fn find_tags_for_file(file_path: &Path, entries: &[CodeownersEntry]) -> Resu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::types::{Owner, OwnerType, Tag};
+    use crate::core::types::Tag;
     use std::path::PathBuf;
 
     fn create_test_tag(name: &str) -> Tag {
         Tag(name.to_string())
     }
 
-    fn create_test_owner(identifier: &str, owner_type: OwnerType) -> Owner {
-        Owner {
-            identifier: identifier.to_string(),
-            owner_type,
-        }
-    }
 
     fn create_test_file_entry(path: &str, tags: Vec<Tag>) -> FileEntry {
         FileEntry {

@@ -138,7 +138,6 @@ fn parse_inline_codeowners_line(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::types::{Owner, OwnerType, Tag};
     use std::fs;
     use tempfile::TempDir;
 

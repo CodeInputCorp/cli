@@ -93,9 +93,7 @@ mod tests {
     use super::*;
     use crate::core::types::{Owner, OwnerType, Tag};
     use ignore::overrides::OverrideBuilder;
-    use std::fs;
     use std::path::PathBuf;
-    use tempfile::TempDir;
 
     fn create_test_owner(identifier: &str, owner_type: OwnerType) -> Owner {
         Owner {

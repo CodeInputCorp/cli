@@ -112,7 +112,7 @@ pub fn find_owners_for_file<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::types::{Owner, OwnerType, Tag};
+    use crate::core::types::{Owner, OwnerType};
     use std::path::PathBuf;
 
     fn create_test_owner(identifier: &str, owner_type: OwnerType) -> Owner {
