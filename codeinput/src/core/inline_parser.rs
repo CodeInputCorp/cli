@@ -1,4 +1,4 @@
-use crate::utils::error::{Error, Result};
+use crate::utils::error::Result;
 use std::path::Path;
 use std::io::{BufRead, BufReader};
 use std::fs::File;
@@ -82,7 +82,6 @@ fn parse_inline_codeowners_line(
                         Some("-->") | Some("*/") => {
                             // This is likely the end of a comment block, so the tag is valid
                             tags.push(Tag(tag_part.to_string()));
-                            i += 1;
                             break; // Stop after this tag since we hit comment end
                         }
                         Some(next) if next.starts_with('#') => {
@@ -96,7 +95,6 @@ fn parse_inline_codeowners_line(
                             // if it looks like a valid tag name (alphanumeric + common chars)
                             if tag_part.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
                                 tags.push(Tag(tag_part.to_string()));
-                                i += 1;
                                 break; // Stop here as next token is likely a comment
                             } else {
                                 break; // This is probably a comment
@@ -105,7 +103,6 @@ fn parse_inline_codeowners_line(
                         None => {
                             // This is the last token, treat as tag
                             tags.push(Tag(tag_part.to_string()));
-                            i += 1;
                         }
                     }
                 }

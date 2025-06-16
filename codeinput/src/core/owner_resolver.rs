@@ -1,7 +1,5 @@
-use super::{smart_iter::SmartIter, types::Tag};
 use crate::utils::error::{Error, Result};
 use ignore::overrides::{Override, OverrideBuilder};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use std::path::{Path, PathBuf};
 

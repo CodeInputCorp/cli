@@ -1,14 +1,12 @@
 use super::{
     inline_parser::detect_inline_codeowners,
-    smart_iter::SmartIter,
     types::{CodeownersEntryMatcher, Tag},
 };
 use crate::utils::error::{Error, Result};
-use ignore::overrides::{Override, OverrideBuilder};
 
-use std::{path::Path, time::Instant};
+use std::path::Path;
 
-use super::types::{CodeownersEntry, Owner};
+use super::types::Owner;
 
 /// Find both owners and tags for a specific file based on all parsed CODEOWNERS entries
 pub fn find_owners_and_tags_for_file(

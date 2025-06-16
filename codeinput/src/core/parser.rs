@@ -1,4 +1,4 @@
-use crate::utils::error::{Error, Result};
+use crate::utils::error::Result;
 use std::path::Path;
 
 use super::types::{CodeownersEntry, Owner, OwnerType, Tag};

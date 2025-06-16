@@ -1,12 +1,9 @@
-use crate::utils::error::{Error, Result};
+use crate::utils::error::Result;
 use ignore::overrides::{Override, OverrideBuilder};
 
 use std::path::{Path, PathBuf};
 
-use super::{
-    smart_iter::SmartIter,
-    types::{CodeownersEntry, FileEntry, Tag},
-};
+use super::types::{CodeownersEntry, FileEntry, Tag};
 
 /// Find all files tagged with a specific tag
 pub fn find_files_for_tag(files: &[FileEntry], tag: &Tag) -> Vec<PathBuf> {
