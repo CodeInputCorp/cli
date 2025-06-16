@@ -86,7 +86,7 @@ enum CompletionSubcommand {
 }
 
 #[derive(Subcommand, PartialEq, Debug)]
-enum CodeownersSubcommand {
+pub(crate) enum CodeownersSubcommand {
     #[clap(
         name = "parse",
         about = "Preprocess CODEOWNERS files and build ownership map"
