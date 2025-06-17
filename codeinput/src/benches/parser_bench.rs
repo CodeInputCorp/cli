@@ -1,5 +1,5 @@
 use codeinput::core::parser::{parse_codeowners, parse_line, parse_owner};
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
 use std::io::Write;
 use std::path::Path;
@@ -337,4 +337,3 @@ criterion_group!(
     bench_parse_owner_unknown
 );
 criterion_main!(benches);
-

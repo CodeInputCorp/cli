@@ -79,7 +79,11 @@ pub fn find_tags_for_file(file_path: &Path, entries: &[CodeownersEntry]) -> Resu
                 over.matched(file_path, false).is_whitelist()
             };
 
-            if matches { Some((entry, depth)) } else { None }
+            if matches {
+                Some((entry, depth))
+            } else {
+                None
+            }
         })
         .collect();
 
@@ -115,7 +119,6 @@ mod tests {
     fn create_test_tag(name: &str) -> Tag {
         Tag(name.to_string())
     }
-
 
     fn create_test_file_entry(path: &str, tags: Vec<Tag>) -> FileEntry {
         FileEntry {

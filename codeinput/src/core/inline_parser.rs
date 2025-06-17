@@ -1,10 +1,10 @@
 use crate::utils::error::Result;
-use std::path::Path;
-use std::io::{BufRead, BufReader};
 use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::path::Path;
 
-use super::types::{InlineCodeownersEntry, Owner, Tag};
 use super::parser::parse_owner;
+use super::types::{InlineCodeownersEntry, Owner, Tag};
 
 /// Detects inline CODEOWNERS declaration in the first 50 lines of a file
 pub fn detect_inline_codeowners(file_path: &Path) -> Result<Option<InlineCodeownersEntry>> {
@@ -32,18 +32,16 @@ pub fn detect_inline_codeowners(file_path: &Path) -> Result<Option<InlineCodeown
 
 /// Parse a single line for inline CODEOWNERS declaration
 fn parse_inline_codeowners_line(
-    line: &str,
-    line_number: usize,
-    file_path: &Path,
+    line: &str, line_number: usize, file_path: &Path,
 ) -> Result<Option<InlineCodeownersEntry>> {
     // Look for !!!CODEOWNERS marker
     if let Some(marker_pos) = line.find("!!!CODEOWNERS") {
         // Extract everything after the marker
         let after_marker = &line[marker_pos + "!!!CODEOWNERS".len()..];
-        
+
         // Split by whitespace to get tokens
         let tokens: Vec<&str> = after_marker.split_whitespace().collect();
-        
+
         if tokens.is_empty() {
             return Ok(None);
         }
@@ -68,16 +66,20 @@ fn parse_inline_codeowners_line(
                 } else {
                     // Extract tag name, but check if this might be a comment
                     let tag_part = &token[1..];
-                    
+
                     // If the tag part is empty, it's probably a comment marker
                     if tag_part.is_empty() {
                         break;
                     }
-                    
+
                     // Special handling for common comment patterns
                     // If the next token looks like end of comment (like "-->"), still treat as tag
-                    let next_token = if i + 1 < tokens.len() { Some(tokens[i + 1]) } else { None };
-                    
+                    let next_token = if i + 1 < tokens.len() {
+                        Some(tokens[i + 1])
+                    } else {
+                        None
+                    };
+
                     match next_token {
                         Some("-->") | Some("*/") => {
                             // This is likely the end of a comment block, so the tag is valid
@@ -97,7 +99,10 @@ fn parse_inline_codeowners_line(
                             // Next token doesn't start with # and isn't a comment ender
                             // This could be a comment, but we'll be conservative and treat as tag
                             // if it looks like a valid tag name (alphanumeric + common chars)
-                            if tag_part.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+                            if tag_part
+                                .chars()
+                                .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+                            {
                                 tags.push(Tag(tag_part.to_string()));
                                 #[allow(unused_assignments)]
                                 {
@@ -145,7 +150,7 @@ mod tests {
     fn test_detect_inline_codeowners_rust_comment() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.rs");
-        
+
         let content = r#"// This is a Rust file
 // !!!CODEOWNERS @user1 @org/team2 #tag1 #tag2
 fn main() {
@@ -156,7 +161,7 @@ fn main() {
 
         let result = detect_inline_codeowners(&file_path)?;
         assert!(result.is_some());
-        
+
         let entry = result.unwrap();
         assert_eq!(entry.file_path, file_path);
         assert_eq!(entry.line_number, 2);
@@ -174,7 +179,7 @@ fn main() {
     fn test_detect_inline_codeowners_javascript_comment() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.js");
-        
+
         let content = r#"/* 
  * !!!CODEOWNERS @frontend-team #javascript
  */
@@ -186,7 +191,7 @@ function hello() {
 
         let result = detect_inline_codeowners(&file_path)?;
         assert!(result.is_some());
-        
+
         let entry = result.unwrap();
         assert_eq!(entry.owners.len(), 1);
         assert_eq!(entry.owners[0].identifier, "@frontend-team");
@@ -200,7 +205,7 @@ function hello() {
     fn test_detect_inline_codeowners_python_comment() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.py");
-        
+
         let content = r#"#!/usr/bin/env python3
 # !!!CODEOWNERS @python-team @user1 #backend #critical
 """
@@ -214,7 +219,7 @@ def main():
 
         let result = detect_inline_codeowners(&file_path)?;
         assert!(result.is_some());
-        
+
         let entry = result.unwrap();
         assert_eq!(entry.line_number, 2);
         assert_eq!(entry.owners.len(), 2);
@@ -231,7 +236,7 @@ def main():
     fn test_detect_inline_codeowners_html_comment() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.html");
-        
+
         let content = r#"<!DOCTYPE html>
 <html>
 <!-- !!!CODEOWNERS @web-team #frontend -->
@@ -244,7 +249,7 @@ def main():
 
         let result = detect_inline_codeowners(&file_path)?;
         assert!(result.is_some());
-        
+
         let entry = result.unwrap();
         assert_eq!(entry.owners.len(), 1);
         assert_eq!(entry.owners[0].identifier, "@web-team");
@@ -258,7 +263,7 @@ def main():
     fn test_detect_inline_codeowners_no_marker() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.rs");
-        
+
         let content = r#"// This is a regular file
 fn main() {
     println!("No CODEOWNERS marker here");
@@ -276,7 +281,7 @@ fn main() {
     fn test_detect_inline_codeowners_no_owners() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.rs");
-        
+
         let content = r#"// !!!CODEOWNERS #just-tags
 fn main() {
     println!("Only tags, no owners");
@@ -294,7 +299,7 @@ fn main() {
     fn test_detect_inline_codeowners_first_occurrence_only() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.rs");
-        
+
         let content = r#"// !!!CODEOWNERS @first-owner #first-tag
 fn main() {
     // !!!CODEOWNERS @second-owner #second-tag
@@ -305,7 +310,7 @@ fn main() {
 
         let result = detect_inline_codeowners(&file_path)?;
         assert!(result.is_some());
-        
+
         let entry = result.unwrap();
         assert_eq!(entry.line_number, 1);
         assert_eq!(entry.owners[0].identifier, "@first-owner");
@@ -318,7 +323,7 @@ fn main() {
     fn test_detect_inline_codeowners_beyond_50_lines() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.rs");
-        
+
         let mut content = String::new();
         // Add 51 lines, with the marker on line 51
         for i in 1..=50 {
@@ -326,7 +331,7 @@ fn main() {
         }
         content.push_str("// !!!CODEOWNERS @should-not-be-found #beyond-limit\n");
         content.push_str("fn main() {}\n");
-        
+
         fs::write(&file_path, content).unwrap();
 
         let result = detect_inline_codeowners(&file_path)?;
@@ -339,7 +344,7 @@ fn main() {
     fn test_detect_inline_codeowners_with_comment_after() -> Result<()> {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.rs");
-        
+
         let content = r#"// !!!CODEOWNERS @user1 #tag1 # this is a comment after
 fn main() {}
 "#;
@@ -347,7 +352,7 @@ fn main() {}
 
         let result = detect_inline_codeowners(&file_path)?;
         assert!(result.is_some());
-        
+
         let entry = result.unwrap();
         assert_eq!(entry.owners.len(), 1);
         assert_eq!(entry.owners[0].identifier, "@user1");
@@ -367,5 +372,4 @@ fn main() {}
 
         Ok(())
     }
-
 }

@@ -4,8 +4,8 @@ use crate::{
         parse::parse_repo,
         resolver::find_owners_and_tags_for_file,
         types::{
-            CacheEncoding, CodeownersCache, CodeownersEntry, CodeownersEntryMatcher, FileEntry,
-            codeowners_entry_to_matcher,
+            codeowners_entry_to_matcher, CacheEncoding, CodeownersCache, CodeownersEntry,
+            CodeownersEntryMatcher, FileEntry,
         },
     },
     utils::error::{Error, Result},

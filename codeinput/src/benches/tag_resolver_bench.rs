@@ -1,6 +1,6 @@
 use codeinput::core::tag_resolver::{find_files_for_tag, find_tags_for_file};
 use codeinput::core::types::{CodeownersEntry, FileEntry, Owner, OwnerType, Tag};
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
 use std::path::{Path, PathBuf};
 

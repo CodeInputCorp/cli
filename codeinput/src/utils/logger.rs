@@ -1,5 +1,5 @@
-use slog::Drain;
 use slog::o;
+use slog::Drain;
 #[cfg(all(target_os = "linux", feature = "journald"))]
 use slog_journald::JournaldDrain;
 #[cfg(feature = "syslog")]

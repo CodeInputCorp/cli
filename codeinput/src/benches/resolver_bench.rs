@@ -1,8 +1,8 @@
 use codeinput::core::resolver::find_owners_and_tags_for_file;
 use codeinput::core::types::{
-    CodeownersEntry, CodeownersEntryMatcher, Owner, OwnerType, Tag, codeowners_entry_to_matcher,
+    codeowners_entry_to_matcher, CodeownersEntry, CodeownersEntryMatcher, Owner, OwnerType, Tag,
 };
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
 use std::path::{Path, PathBuf};
 

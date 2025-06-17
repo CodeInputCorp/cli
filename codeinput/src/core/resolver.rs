@@ -61,7 +61,11 @@ pub fn find_owners_and_tags_for_file(
                     .is_whitelist()
             };
 
-            if matches { Some((entry, depth)) } else { None }
+            if matches {
+                Some((entry, depth))
+            } else {
+                None
+            }
         })
         .collect();
 

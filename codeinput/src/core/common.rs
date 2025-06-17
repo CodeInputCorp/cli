@@ -143,16 +143,12 @@ mod tests {
 
         // Verify results
         assert_eq!(found_files.len(), 2);
-        assert!(
-            found_files
-                .iter()
-                .any(|p| p == &base_path.join("CODEOWNERS"))
-        );
-        assert!(
-            found_files
-                .iter()
-                .any(|p| p == &nested_dir.join("CODEOWNERS"))
-        );
+        assert!(found_files
+            .iter()
+            .any(|p| p == &base_path.join("CODEOWNERS")));
+        assert!(found_files
+            .iter()
+            .any(|p| p == &nested_dir.join("CODEOWNERS")));
 
         Ok(())
     }

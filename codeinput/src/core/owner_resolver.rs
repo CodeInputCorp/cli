@@ -82,7 +82,11 @@ pub fn find_owners_for_file<'a>(
                 over.matched(file_path, false).is_whitelist()
             };
 
-            if matches { Some((entry, depth)) } else { None }
+            if matches {
+                Some((entry, depth))
+            } else {
+                None
+            }
         })
         .collect();
 
