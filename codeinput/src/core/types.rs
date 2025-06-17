@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+#[cfg(feature = "ignore")]
 use ignore::overrides::Override;
 use serde::{Deserialize, Serialize};
 
@@ -39,6 +40,7 @@ pub struct InlineCodeownersEntry {
 }
 
 /// CODEOWNERS entry with Override matcher
+#[cfg(feature = "ignore")]
 #[derive(Debug)]
 pub struct CodeownersEntryMatcher {
     pub source_file: PathBuf,
@@ -49,6 +51,7 @@ pub struct CodeownersEntryMatcher {
     pub override_matcher: Override,
 }
 
+#[cfg(feature = "ignore")]
 pub fn codeowners_entry_to_matcher(entry: &CodeownersEntry) -> CodeownersEntryMatcher {
     let codeowners_dir = match entry.source_file.parent() {
         Some(dir) => dir,
@@ -350,6 +353,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "ignore")]
     #[test]
     fn test_codeowners_entry_to_matcher_directory_pattern_github_behavior() {
         use std::fs;
