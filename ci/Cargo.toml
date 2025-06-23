@@ -1,6 +1,6 @@
 [package]
 name = "ci"
-version = "0.0.2-beta"
+version = "0.0.3"
 authors = ["Abid Omar <contact@omarabid.com>"]
 edition = "2021"
 repository = "https://github.com/CodeInputCorp/cli"
@@ -23,7 +23,7 @@ journald = ["codeinput/journald"]
 syslog = ["codeinput/syslog"]
 
 [dependencies]
-codeinput = { version = "0.0.2-beta", path = "../codeinput" }
+codeinput = { version = "0.0.3", path = "../codeinput" }
 human-panic = { workspace = true }
 better-panic = { workspace = true }
 log = { workspace = true }
