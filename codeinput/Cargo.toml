@@ -1,6 +1,6 @@
 [package]
 name = "codeinput"
-version = "0.0.2-beta"
+version = "0.0.3"
 authors = ["Abid Omar <contact@omarabid.com>"]
 edition = "2021"
 repository = "https://github.com/CodeInputCorp/cli"
@@ -34,7 +34,28 @@ harness = false
 
 [features]
 default = ["full"]
-full = ["rayon", "log", "rand", "ignore", "serde_json", "bincode", "git2", "sha2", "thiserror", "backtrace", "color-backtrace", "config", "lazy_static", "slog", "slog-scope", "slog-async", "slog-stdlog", "tabled", "terminal_size", "clap"]
+full = [
+	"rayon",
+	"log",
+	"rand",
+	"ignore",
+	"serde_json",
+	"bincode",
+	"git2",
+	"sha2",
+	"thiserror",
+	"backtrace",
+	"color-backtrace",
+	"config",
+	"lazy_static",
+	"slog",
+	"slog-scope",
+	"slog-async",
+	"slog-stdlog",
+	"tabled",
+	"terminal_size",
+	"clap",
+]
 nightly = []
 termlog = ["slog-term"]
 journald = ["slog-journald"]
