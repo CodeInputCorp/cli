@@ -107,3 +107,14 @@ impl From<log::SetLoggerError> for Error {
         }
     }
 }
+
+impl From<git2::Error> for Error {
+    fn from(err: git2::Error) -> Self {
+        Error {
+            msg: String::from("Git Error"),
+            #[cfg(feature = "nightly")]
+            backtrace: std::backtrace::Backtrace::capture(),
+            source: Some(Box::new(err)),
+        }
+    }
+}

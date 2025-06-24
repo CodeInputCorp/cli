@@ -30,6 +30,7 @@ slog-stdlog = "4.1.1"
 tabled = "0.19.0"
 terminal_size = "0.4.2"
 clap = { version = "4.5.39", features = ["cargo", "derive"] }
+chrono = { version = "0.4.38", features = ["serde"] }
 
 # Dev dependencies
 assert_cmd = "2.0.17"

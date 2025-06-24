@@ -6,7 +6,7 @@ use clap_complete::{
 use std::path::PathBuf;
 
 use codeinput::core::{
-    commands,
+    commands::{self, infer_owners::{InferScope, InferAlgorithm}},
     types::{CacheEncoding, OutputFormat},
 };
 use codeinput::utils::app_config::AppConfig;
@@ -207,6 +207,43 @@ pub(crate) enum CodeownersSubcommand {
         #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
         cache_file: Option<PathBuf>,
     },
+    #[clap(
+        name = "infer-owners",
+        about = "Infer file ownership from git history and blame information"
+    )]
+    InferOwners {
+        /// Directory path to analyze (default: current directory)
+        #[arg(default_value = ".")]
+        path: Option<PathBuf>,
+
+        /// Scope of analysis: all files or only unowned files
+        #[arg(long, value_name = "SCOPE", default_value = "unowned", value_parser = parse_infer_scope)]
+        scope: InferScope,
+
+        /// Algorithm for ownership determination
+        #[arg(long, value_name = "ALGORITHM", default_value = "lines", value_parser = parse_infer_algorithm)]
+        algorithm: InferAlgorithm,
+
+        /// Only consider commits from last N days
+        #[arg(long, value_name = "DAYS", default_value = "365")]
+        lookback_days: u32,
+
+        /// Minimum commits required to be considered owner
+        #[arg(long, value_name = "COUNT", default_value = "3")]
+        min_commits: u32,
+
+        /// Minimum percentage of lines/commits to be considered owner
+        #[arg(long, value_name = "PERCENT", default_value = "20")]
+        min_percentage: u32,
+
+        /// Custom cache file location
+        #[arg(long, value_name = "FILE", default_value = ".codeowners.cache")]
+        cache_file: Option<PathBuf>,
+
+        /// Output file to write CODEOWNERS entries
+        #[arg(long, short = 'o', value_name = "FILE")]
+        output: Option<PathBuf>,
+    },
 }
 
 pub fn cli_match() -> Result<()> {
@@ -288,6 +325,25 @@ pub(crate) fn codeowners(subcommand: &CodeownersSubcommand) -> Result<()> {
             format,
             cache_file,
         } => commands::inspect::run(file_path, repo.as_deref(), format, cache_file.as_deref()),
+        CodeownersSubcommand::InferOwners {
+            path,
+            scope,
+            algorithm,
+            lookback_days,
+            min_commits,
+            min_percentage,
+            cache_file,
+            output,
+        } => commands::infer_owners::run(
+            path.as_deref(),
+            scope,
+            algorithm,
+            *lookback_days,
+            *min_commits,
+            *min_percentage,
+            cache_file.as_deref(),
+            output.as_deref(),
+        ),
     }
 }
 
@@ -307,3 +363,21 @@ fn parse_cache_encoding(s: &str) -> std::result::Result<CacheEncoding, String> {
         _ => Err(format!("Invalid cache encoding: {}", s)),
     }
 }
+
+fn parse_infer_scope(s: &str) -> std::result::Result<InferScope, String> {
+    match s.to_lowercase().as_str() {
+        "all" => Ok(InferScope::All),
+        "unowned" => Ok(InferScope::Unowned),
+        _ => Err(format!("Invalid scope: {}. Valid options: all, unowned", s)),
+    }
+}
+
+fn parse_infer_algorithm(s: &str) -> std::result::Result<InferAlgorithm, String> {
+    match s.to_lowercase().as_str() {
+        "commits" => Ok(InferAlgorithm::Commits),
+        "lines" => Ok(InferAlgorithm::Lines),
+        "recent" => Ok(InferAlgorithm::Recent),
+        _ => Err(format!("Invalid algorithm: {}. Valid options: commits, lines, recent", s)),
+    }
+}
+

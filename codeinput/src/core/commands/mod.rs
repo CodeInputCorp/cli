@@ -1,4 +1,5 @@
 pub mod config;
+pub mod infer_owners;
 pub mod inspect;
 pub mod list_files;
 pub mod list_owners;
